@@ -1,6 +1,5 @@
-
 :root {
-  --bg1: #f0f9ff;
+  --bg1: #e0f2fe;
   --bg2: #ecfdf5;
   --card: #ffffff;
   --text: #0f172a;
@@ -8,7 +7,12 @@
   --accent: #0284c7;
   --good: #16a34a;
   --bad: #dc2626;
-  --warn: #fbbf24;
+  --sand: #f7e9c7;
+  --sand2: #f4dba4;
+  --water: #7dd3fc;
+  --water2: #38bdf8;
+  --neigh: #cbd5e1;
+  --build: #94a3b8;
 }
 * { box-sizing: border-box; }
 body {
@@ -25,7 +29,6 @@ body {
 .badge.blue { background: #2563eb; }
 .badge.green { background: #16a34a; }
 .badge.red { background: #dc2626; }
-.badge.warn { background: var(--warn); color:#111827; }
 
 .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
 @media (min-width: 1000px) { .grid { grid-template-columns: 2fr 1fr; } }
@@ -39,17 +42,14 @@ body {
 .stat .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
 .stat .value { font-size: 18px; font-weight: 700; }
 
-/* timeline */
-.timeline { display:flex; gap:8px; align-items:center; margin-top:12px; flex-wrap:wrap; }
-.dot { width:12px; height:12px; border-radius:999px; background:#cbd5e1; }
-.dot.active { background:#0284c7; box-shadow:0 0 0 3px rgba(2,136,209,.15); }
-.dot.done { background:#22c55e; }
-
-/* shoreline meter */
-.beach-meter { margin-top:12px; background:#e2e8f0; border-radius:999px; overflow:hidden; height:16px; position:relative; }
-.beach-fill { background:linear-gradient(90deg, #22c55e, #16a34a); height:100%; transition: width .4s ease; }
-.beach-label { position:absolute; left:8px; top:50%; transform:translateY(-50%); font-size:11px; color:#0f172a; }
-.beach-goal { position:absolute; top:0; bottom:0; width:2px; background: repeating-linear-gradient( to bottom, rgba(2,6,23,0.25), rgba(2,6,23,0.25) 6px, transparent 6px, transparent 12px ); }
+/* Top-down coastal visual */
+.coast { margin-top:14px; height:120px; border-radius:14px; overflow:hidden; display:flex; border:1px solid rgba(2,6,23,0.08); }
+.water { flex: 1; background: linear-gradient(90deg, var(--water), var(--water2)); position:relative; }
+.water::after { content:""; position:absolute; inset:0; background-image: radial-gradient(rgba(255,255,255,0.25) 1px, transparent 1px); background-size: 14px 14px; }
+.sand { width: 50%; transition: width .4s ease; background: linear-gradient(180deg, var(--sand), var(--sand2)); position:relative; box-shadow: inset 8px 0 12px rgba(0,0,0,0.08); }
+.sand::after { content:""; position:absolute; inset:0; background-image: radial-gradient(rgba(0,0,0,0.04) 1px, transparent 1px); background-size: 10px 10px; }
+.neighborhood { width: 26%; background: linear-gradient(180deg, #e5e7eb, var(--neigh)); position:relative; box-shadow: inset 8px 0 12px rgba(0,0,0,0.08); }
+.neighborhood::before { content:""; position:absolute; inset:0; background-image: linear-gradient( to top, transparent 85%, rgba(0,0,0,0.06) 85% ), repeating-linear-gradient( 90deg, var(--build), var(--build) 24px, transparent 24px, transparent 40px); opacity:.7; }
 
 /* options */
 .option-grid { display:grid; grid-template-columns:1fr; gap:10px; margin-top:8px; }
@@ -60,6 +60,7 @@ body {
 .option-title { font-weight:700; }
 .option-meta { font-size:12px; color:#475569; }
 .actions { display:flex; gap:8px; margin-top:8px; }
+
 button, .btn {
   appearance: none;
   padding: 10px 12px;
@@ -82,19 +83,6 @@ button.primary:active { transform: translateY(1px); }
 /* log */
 .log { max-height: 350px; overflow: auto; display: grid; gap: 10px; }
 .log-entry { border: 1px dashed rgba(2,6,23,0.15); border-radius: 12px; background: #fff; padding: 10px 12px; font-size: 14px; white-space: pre-wrap; }
-
-/* wild card flip */
-.wild-wrap { perspective: 1000px; margin-top:12px; }
-.wild-card { border:1px dashed rgba(2,6,23,0.25); border-radius:12px; padding:14px; min-height:70px; transform-style:preserve-3d; transition: transform .6s ease; background:#fff; }
-.wild-card.flip { transform: rotateY(180deg); }
-.wild-front, .wild-back { position:relative; backface-visibility:hidden; }
-.wild-back { position:absolute; inset:0; transform: rotateY(180deg); }
-
-/* end summary */
-.summary { margin-top:12px; padding:14px; border-radius:12px; background:#ecfeff; border:1px solid #a5f3fc; display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
-.delta { font-weight:700; }
-.delta.pos { color:#16a34a; }
-.delta.neg { color:#dc2626; }
 
 .footer-hints { display: flex; gap: 10px; justify-content: space-between; color: var(--muted); font-size: 12px; flex-wrap:wrap; margin-top:8px; }
 @media (max-width: 700px) { .stats { grid-template-columns: repeat(2,1fr); } }
