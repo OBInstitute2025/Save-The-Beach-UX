@@ -23,27 +23,27 @@ const OPTIONS = {
 }
 const ORDER = ['NOURISH','DUNES','REEF','SEAWALL','RETREAT','NONE']
 
-// Photoreal backgrounds for move cards (Unsplash “source” links — replace anytime with your own)
+// Use direct, stable image URLs (feel free to swap later for your own)
+// If you host your own images in /public, replace with "/images/xxx.jpg"
 const MOVE_BG = {
-  NOURISH:  'https://source.unsplash.com/1200x800/?beach,bulldozer,sand',
-  DUNES:    'https://source.unsplash.com/1200x800/?sand-dunes,grass,coast',
-  REEF:     'https://source.unsplash.com/1200x800/?reef,underwater,waves',
-  SEAWALL:  'https://source.unsplash.com/1200x800/?seawall,breakwater,storm',
-  RETREAT:  'https://source.unsplash.com/1200x800/?coastal,houses,shore',
-  NONE:     'https://source.unsplash.com/1200x800/?storm,ocean,waves',
+  NOURISH:  'https://images.unsplash.com/photo-1533636721434-0e2d61030955?q=80&w=1600&auto=format&fit=crop',
+  DUNES:    'https://images.unsplash.com/photo-1519046904884-53103b34b206?q=80&w=1600&auto=format&fit=crop',
+  REEF:     'https://images.unsplash.com/photo-1501117716987-c8eab02b8cc2?q=80&w=1600&auto=format&fit=crop',
+  SEAWALL:  'https://images.unsplash.com/photo-1544551763-7ef4200b69c3?q=80&w=1600&auto=format&fit=crop',
+  RETREAT:  'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=1600&auto=format&fit=crop',
+  NONE:     'https://images.unsplash.com/photo-1503435824048-a799a3a84bf7?q=80&w=1600&auto=format&fit=crop',
 }
 
 const WILDCARDS = [
-  { key: 'STORM',     name: '100-Year Storm',     text: 'A powerful storm slams the coast.',                    img: 'https://source.unsplash.com/1600x1000/?storm-wave,coast' },
-  { key: 'RECALL',    name: 'Recall',             text: 'Your policy decision is overturned.',                 img: 'https://source.unsplash.com/1600x1000/?city-hall,meeting' },
-  { key: 'LA_NINA',   name: 'La Niña Year',       text: 'Unusually calm ocean conditions this year.',          img: 'https://source.unsplash.com/1600x1000/?calm,ocean' },
-  { key: 'KING_TIDE', name: 'King Tide Flooding', text: 'Extreme high tides flood streets and infrastructure.', img: 'https://source.unsplash.com/1600x1000/?flood,coast,street' },
-  { key: 'EMISSIONS', name: 'Emissions Reduction',text: 'Global shift lowers long-term sea-level rise rate.',  img: 'https://source.unsplash.com/1600x1000/?wind-turbines,renewable' },
+  { key: 'STORM',     name: '100-Year Storm',     text: 'A powerful storm slams the coast.',                    img: 'https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?q=80&w=2000&auto=format&fit=crop' },
+  { key: 'RECALL',    name: 'Recall',             text: 'Your policy decision is overturned.',                 img: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?q=80&w=2000&auto=format&fit=crop' },
+  { key: 'LA_NINA',   name: 'La Niña Year',       text: 'Unusually calm ocean conditions this year.',          img: 'https://images.unsplash.com/photo-1501959915551-4e8a04a2b59a?q=80&w=2000&auto=format&fit=crop' },
+  { key: 'KING_TIDE', name: 'King Tide Flooding', text: 'Extreme high tides flood streets and infrastructure.', img: 'https://images.unsplash.com/photo-1522512115668-c09775d6f424?q=80&w=2000&auto=format&fit=crop' },
+  { key: 'EMISSIONS', name: 'Emissions Reduction',text: 'Global shift lowers long-term sea-level rise rate.',  img: 'https://images.unsplash.com/photo-1545259741-2ea3ebf61fa7?q=80&w=2000&auto=format&fit=crop' },
 ]
 
 function prettyMoney(m){ return `$${m.toFixed(0)}M` }
 
-// ===== App =====
 export default function App(){
   const [difficulty, setDifficulty] = useState('normal')
   const [selected, setSelected] = useState('NOURISH')
@@ -71,8 +71,8 @@ export default function App(){
   }
   const [s, setS] = useState(initialState())
 
-  // Wild-card modal state (photoreal overlay)
-  const [wildModal, setWildModal] = useState(null) // {name, text, img, widthChange, budgetChange, why, futureNote}
+  // Wild-card modal state (photo-first overlay)
+  const [wildModal, setWildModal] = useState(null) // {name,text,img,why,futureNote,widthChangeThisDecade,widthFromWild,budgetChangeThisDecade,budgetFromWild,decadeRange,newWidth,newBudget}
 
   const badge = s.gameOver
     ? (s.victory ? <span className="badge green">Finished 🎉</span> : <span className="badge red">Game Over</span>)
@@ -119,7 +119,7 @@ export default function App(){
       }
       case 'SEAWALL':
         if (!state.seawallBuilt){
-          cost -= OPTIONS.SEWALL?.cost || OPTIONS.SEAWALL.cost
+          cost -= OPTIONS.SEAWALL.cost
           notes.push('Built Seawall: base loss becomes –20 ft/dec permanently.')
         } else {
           notes.push('Seawall already built.')
@@ -167,7 +167,7 @@ export default function App(){
         }
         break
       case 'LA_NINA':
-        widthChangeFromWild = -rate  // cancels whatever the rate was
+        widthChangeFromWild = -rate
         rate = 0
         why = 'Cooler equatorial Pacific → calmer wave climate → minimal erosion.'
         notes.push('La Niña → 0 ft change this decade.')
@@ -247,7 +247,7 @@ export default function App(){
     lines.push(`• Budget: ${prettyMoney(working.budget)} → ${prettyMoney(newBudget)}`)
     lines.push(`• Width: ${working.width} ft → ${newWidth} ft`)
 
-    // NEW lose condition: immediate if width <= 0 or budget <= 0
+    // Lose immediately if width <= 0 or budget <= 0
     const reachedEnd = working.round >= ROUNDS
     const lost = (newWidth <= 0) || (newBudget <= 0)
     const victory = !lost && reachedEnd
@@ -273,7 +273,7 @@ export default function App(){
     }
     setS(nextState)
 
-    // If we drew a wild card, show the photoreal modal with “what/why/impact”
+    // Show photoreal wild-card modal with bold impact badges
     if (drawn && wildExtras){
       const widthChangeThisDecade = rate
       const widthFromWild = wildExtras.widthChangeFromWild || 0
@@ -282,15 +282,12 @@ export default function App(){
         name: drawn.name,
         text: drawn.text,
         img: drawn.img,
-        // impact
         widthChangeThisDecade,
         widthFromWild,
         budgetChangeThisDecade: budgetDelta,
         budgetFromWild,
-        // explanations
         why: wildExtras.why,
         futureNote: wildExtras.futureNote,
-        // context
         newWidth,
         newBudget,
         decadeRange: `${working.year}–${working.year+10}`,
@@ -331,25 +328,29 @@ export default function App(){
     } = wildModal
     return (
       <div className="modal-backdrop">
-        <div className="wild-modal">
-          <div className="wild-photo" style={{backgroundImage:`url('${img}')`}} />
-          <div className="wild-content">
+        <div className="wild-frame" style={{ ['--wild']: `url('${img}')` }}>
+          <div className="wild-gradient" />
+          <div className="wild-sheet">
             <div className="wild-title">{name}</div>
             <div className="wild-sub">{text}</div>
 
-            <div className="wild-impact">
-              <div><span className="chip">This decade</span> Width: <b>{widthChangeThisDecade >= 0 ? '+' : ''}{widthChangeThisDecade} ft</b> • Budget: <b>{budgetChangeThisDecade >= 0 ? '+' : ''}{prettyMoney(budgetChangeThisDecade)}</b></div>
-              <div className="muted">Wild-card contribution — Width: <b>{widthFromWild >= 0 ? '+' : ''}{widthFromWild} ft</b> • Budget: <b>{budgetFromWild >= 0 ? '+' : ''}{prettyMoney(budgetFromWild)}</b></div>
-              <div className="muted">After {decadeRange}: Width now <b>{newWidth} ft</b> • Budget <b>{prettyMoney(newBudget)}</b></div>
+            <div className="wild-badges">
+              <div className={'badge-num ' + (widthChangeThisDecade >= 0 ? 'good' : 'bad')}>
+                Beach {widthChangeThisDecade >= 0 ? '▲' : '▼'} {widthChangeThisDecade} ft
+              </div>
+              <div className={'badge-num ' + (budgetChangeThisDecade >= 0 ? 'good' : 'bad')}>
+                Budget {budgetChangeThisDecade >= 0 ? '+' : ''}{prettyMoney(budgetChangeThisDecade)}
+              </div>
             </div>
 
-            <div className="wild-why">
-              <div className="label">Why this happened</div>
-              <div>{why || 'This event changed conditions for the decade.'}</div>
-              {futureNote && <div className="future">{futureNote}</div>}
+            <div className="wild-mini">
+              Wild-card contribution → Beach {widthFromWild >= 0 ? '+' : ''}{widthFromWild} ft • Budget {budgetFromWild >= 0 ? '+' : ''}{prettyMoney(budgetFromWild)}
             </div>
 
-            <div style={{display:'flex', gap:8, justifyContent:'flex-end', marginTop:8}}>
+            {why && <div className="wild-why">{why}</div>}
+            {futureNote && <div className="wild-future">{futureNote}</div>}
+
+            <div className="wild-actions">
               <button className="primary" onClick={()=>setWildModal(null)}>Continue</button>
             </div>
           </div>
@@ -419,7 +420,7 @@ export default function App(){
           </div>
         </div>
 
-        {/* ACTIONS (photoreal backgrounds) */}
+        {/* ACTIONS (photo backgrounds) */}
         <div className="card">
           <div className="header"><h3>Choose Your Move</h3></div>
           <div className="content">
@@ -433,7 +434,7 @@ export default function App(){
                     key={key}
                     className={'option-card photo' + (isSel ? ' selected' : '')}
                     onClick={()=>!s.gameOver && setSelected(key)}
-                    style={{ backgroundImage: `linear-gradient( to bottom, rgba(0,0,0,.25), rgba(0,0,0,.55) ), url('${bg}')` }}
+                    style={{ ['--bg']: `url('${bg}')` }}
                   >
                     <div className="option-top">
                       <div className="option-title">{o.title}</div>
