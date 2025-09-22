@@ -86,3 +86,17 @@ button.primary:active { transform: translateY(1px); }
 
 .footer-hints { display: flex; gap: 10px; justify-content: space-between; color: var(--muted); font-size: 12px; flex-wrap:wrap; margin-top:8px; }
 @media (max-width: 700px) { .stats { grid-template-columns: repeat(2,1fr); } }
+
+/* end-of-game overlay */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(2,6,23,.55);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.modal {
+  background: #fff; border: 1px solid rgba(2,6,23,.1);
+  border-radius: 16px; padding: 18px;
+  width: min(560px, 92vw);
+  box-shadow: 0 10px 30px rgba(2,6,23,.25);
+}
