@@ -14,82 +14,58 @@ const DIFFICULTIES = {
 
 const OPTIONS = {
   NONE:     {key:'NONE',     title:'Do Nothing',           cost:0,   desc:'Draw a Wild Card (random event).'},
-  NOURISH:  {key:'NOURISH',  title:'Beach Nourishment',    cost:15,  desc:'Reduce loss by 5 ft this decade.'},
-  DUNES:    {key:'DUNES',    title:'Dune Restoration',     cost:5,   desc:'Reduce loss by 2 ft this decade.'},
-  REEF:     {key:'REEF',     title:'Artificial Reef',      cost:100, desc:'Reduce base loss to –5 ft/dec for 30 years.'},
-  SEAWALL:  {key:'SEAWALL',  title:'Seawall / Armoring',   cost:150, desc:'Set base loss to –20 ft/dec permanently.'},
-  RETREAT:  {key:'RETREAT',  title:'Managed Retreat',      cost:150, desc:'0 ft loss for the next 3 decades.'},
+  NOURISH:  {key:'NOURISH',  title:'Beach Nourishment',    cost:15,  desc:'Reduce beach loss by 5 ft this decade.'},
+  DUNES:    {key:'DUNES',    title:'Dune Restoration',     cost:5,   desc:'Reduce beach loss by 2 ft this decade.'},
+  REEF:     {key:'REEF',     title:'Artificial Reef',      cost:100, desc:'Set base beach loss to –5 ft/dec for 30 years.'},
+  SEAWALL:  {key:'SEAWALL',  title:'Seawall / Armoring',   cost:150, desc:'Set base beach loss to –20 ft/dec permanently.'},
+  RETREAT:  {key:'RETREAT',  title:'Managed Retreat',      cost:150, desc:'Set beach loss to 0 for 3 decades.'},
 }
 const ORDER = ['NOURISH','DUNES','REEF','SEAWALL','RETREAT','NONE']
 
-/** Curated, subject-accurate photos (arrays so we can failover reliably).
- *  We’ll render these with a real <img/> + onError fallback so they don’t go black.
+/** INLINE SVGs (data URIs) so buttons never go black.
+ *  Each illustration matches the move.
  */
-const MOVE_BG = {
-  NOURISH: [
-    // bulldozer/pipeline placing sand
-    'https://images.unsplash.com/photo-1502404768591-9046a3c9a470?q=80&w=1600&auto=format&fit=crop',
-    'https://source.unsplash.com/1600x900/?beach,bulldozer,sand',
-    'https://source.unsplash.com/1600x900/?beach,nourishment'
-  ],
-  DUNES: [
-    // vegetated foredunes / fencing on dunes
-    'https://images.unsplash.com/photo-1496439786094-e697f0f1ac75?q=80&w=1600&auto=format&fit=crop',
-    'https://source.unsplash.com/1600x900/?sand-dunes,grass,fence',
-    'https://source.unsplash.com/1600x900/?dune,restoration'
-  ],
-  REEF: [
-    // artificial reef: reef-balls/underwater structures
-    'https://images.unsplash.com/photo-1517957589572-1f54a34a8daa?q=80&w=1600&auto=format&fit=crop',
-    'https://source.unsplash.com/1600x900/?reef,artificial,underwater',
-    'https://source.unsplash.com/1600x900/?reef-balls'
-  ],
-  SEAWALL: [
-    // riprap / concrete revetment
-    'https://images.unsplash.com/photo-1516110998306-4b3f0b4a3f84?q=80&w=1600&auto=format&fit=crop',
-    'https://source.unsplash.com/1600x900/?seawall,breakwater,rocks',
-    'https://source.unsplash.com/1600x900/?revetment,riprap'
-  ],
-  RETREAT: [
-    // coastal homes set back / moving inland
-    'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=1600&auto=format&fit=crop',
-    'https://source.unsplash.com/1600x900/?coastal,houses,shore',
-    'https://source.unsplash.com/1600x900/?managed,retreat'
-  ],
-  NONE: [
-    // neutral ocean (used only for the “do nothing” move card)
-    'https://images.unsplash.com/photo-1503435824048-a799a3a84bf7?q=80&w=1600&auto=format&fit=crop',
-    'https://source.unsplash.com/1600x900/?ocean,waves,coast',
-    'https://source.unsplash.com/1600x900/?sea'
-  ],
+const svg = {
+  nourish:
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500'><defs><linearGradient id='w' x1='0' x2='1'><stop offset='0' stop-color='%237dd3fc'/><stop offset='1' stop-color='%2338bdf8'/></linearGradient><linearGradient id='s' x1='0' x2='0' y1='0' y2='1'><stop offset='0' stop-color='%23f7e9c7'/><stop offset='1' stop-color='%23f4dba4'/></linearGradient></defs><rect width='800' height='500' fill='url(%23w)'/><rect x='420' y='0' width='380' height='500' fill='url(%23s)'/><path d='M600 360 l80 -20 v40 l-80 20 z' fill='%238b5e34' opacity='.8'/><rect x='520' y='340' width='60' height='40' rx='6' fill='%236b7280'/><rect x='500' y='350' width='40' height='30' rx='4' fill='%2394a3b8'/><circle cx='540' cy='390' r='12' fill='%23334155'/><circle cx='505' cy='390' r='10' fill='%23334155'/><path d='M515 360 Q470 330 420 340' stroke='%238b5e34' stroke-width='10' fill='none' stroke-linecap='round' opacity='.9'/></svg>",
+  dunes:
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500'><defs><linearGradient id='w' x1='0' x2='1'><stop offset='0' stop-color='%237dd3fc'/><stop offset='1' stop-color='%2338bdf8'/></linearGradient><linearGradient id='s' x1='0' x2='0' y1='0' y2='1'><stop offset='0' stop-color='%23f7e9c7'/><stop offset='1' stop-color='%23f4dba4'/></linearGradient></defs><rect width='800' height='500' fill='url(%23w)'/><path d='M200 380 Q300 320 420 360 T720 360 L800 500 L0 500 Z' fill='url(%23s)'/><path d='M500 300 q-20 40 -10 90' stroke='%230a7f3f' stroke-width='6' stroke-linecap='round'/><path d='M540 300 q-10 40 5 90' stroke='%230a7f3f' stroke-width='6' stroke-linecap='round'/><path d='M450 320 q-20 40 -5 90' stroke='%230a7f3f' stroke-width='6' stroke-linecap='round'/><path d='M300 340 h240' stroke='%238b5e34' stroke-width='6' stroke-linecap='round'/><path d='M340 330 v40 M380 330 v40 M420 330 v40 M460 330 v40 M500 330 v40' stroke='%238b5e34' stroke-width='6' stroke-linecap='round'/></svg>",
+  reef:
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500'><defs><linearGradient id='sea' x1='0' x2='0' y1='0' y2='1'><stop offset='0' stop-color='%231e3a8a'/><stop offset='1' stop-color='%230ea5e9'/></linearGradient></defs><rect width='800' height='500' fill='url(%23sea)'/><circle cx='260' cy='360' r='38' fill='%23225637'/><circle cx='360' cy='380' r='46' fill='%23225637'/><circle cx='460' cy='360' r='38' fill='%23225637'/><circle cx='360' cy='380' r='18' fill='%23000000' opacity='.25'/><circle cx='260' cy='360' r='12' fill='%23000000' opacity='.25'/><circle cx='460' cy='360' r='12' fill='%23000000' opacity='.25'/><path d='M150 260 q80 -40 160 0' stroke='%2300e5ff' stroke-width='3' opacity='.5' fill='none'/><path d='M350 240 q100 -40 200 0' stroke='%2300e5ff' stroke-width='3' opacity='.5' fill='none'/></svg>",
+  seawall:
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500'><defs><linearGradient id='w' x1='0' x2='1'><stop offset='0' stop-color='%237dd3fc'/><stop offset='1' stop-color='%2338bdf8'/></linearGradient><linearGradient id='rock' x1='0' x2='0' y1='0' y2='1'><stop offset='0' stop-color='%2399a2ad'/><stop offset='1' stop-color='%236b7280'/></linearGradient><linearGradient id='s' x1='0' x2='0' y1='0' y2='1'><stop offset='0' stop-color='%23f7e9c7'/><stop offset='1' stop-color='%23f4dba4'/></linearGradient></defs><rect width='800' height='500' fill='url(%23w)'/><rect x='520' y='0' width='280' height='500' fill='url(%23s)'/><path d='M520 300 l-120 60 l120 60 z' fill='url(%23rock)'/><circle cx='420' cy='360' r='24' fill='%23788599'/><circle cx='480' cy='340' r='20' fill='%237b8694'/><path d='M460 260 q-60 20 -40 60' stroke='%23ffffff' stroke-width='6' opacity='.6' fill='none'/></svg>",
+  retreat:
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500'><defs><linearGradient id='w' x1='0' x2='1'><stop offset='0' stop-color='%237dd3fc'/><stop offset='1' stop-color='%2338bdf8'/></linearGradient><linearGradient id='s' x1='0' x2='0' y1='0' y2='1'><stop offset='0' stop-color='%23f7e9c7'/><stop offset='1' stop-color='%23f4dba4'/></linearGradient></defs><rect width='800' height='500' fill='url(%23w)'/><rect x='500' y='0' width='300' height='500' fill='url(%23s)'/><rect x='560' y='310' width='70' height='50' fill='%23ffffff'/><polygon points='560,310 595,280 630,310' fill='%2394a3b8'/><rect x='650' y='290' width='80' height='60' fill='%23ffffff'/><polygon points='650,290 690,260 730,290' fill='%2394a3b8'/><path d='M540 350 l-40 0' stroke='%23000000' stroke-width='4' marker-end='url(%23a)'/><defs><marker id='a' markerWidth='8' markerHeight='8' refX='3' refY='3' orient='auto'><path d='M0,0 L6,3 L0,6 Z' fill='%23000000'/></marker></defs></svg>",
+  none:
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500'><defs><linearGradient id='w' x1='0' x2='1'><stop offset='0' stop-color='%237dd3fc'/><stop offset='1' stop-color='%2338bdf8'/></linearGradient></defs><rect width='800' height='500' fill='url(%23w)'/><path d='M0 320 q80 -40 160 0 t160 0 t160 0 t160 0 t160 0' stroke='%23ffffff' stroke-width='6' fill='none' opacity='.6'/></svg>",
 }
 
-/** Wild-card images, subject-accurate + fallbacks */
+// Use inline art for ALL move cards (no external CDNs)
+const MOVE_BG = {
+  NOURISH: [svg.nourish],
+  DUNES:   [svg.dunes],
+  REEF:    [svg.reef],
+  SEAWALL: [svg.seawall],
+  RETREAT: [svg.retreat],
+  NONE:    [svg.none],
+}
+
+// Wild-card images (we can keep photos; UI already working well)
 const WILDCARD_IMGS = {
   STORM: [
-    'https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?q=80&w=2000&auto=format&fit=crop',
-    'https://source.unsplash.com/2000x1200/?storm,coast,wave',
-    'https://source.unsplash.com/2000x1200/?storm-surge,beach'
+    'https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?q=80&w=1800&auto=format&fit=crop'
   ],
   RECALL: [
-    'https://images.unsplash.com/photo-1551836022-d5d88e9218df?q=80&w=2000&auto=format&fit=crop',
-    'https://source.unsplash.com/2000x1200/?city-hall,meeting,vote',
-    'https://source.unsplash.com/2000x1200/?ballot,recall,policy'
+    'https://images.unsplash.com/photo-1551836022-d5d88e9218df?q=80&w=1800&auto=format&fit=crop'
   ],
   LA_NINA: [
-    'https://images.unsplash.com/photo-1501959915551-4e8a04a2b59a?q=80&w=2000&auto=format&fit=crop',
-    'https://source.unsplash.com/2000x1200/?calm,sea,blue-ocean',
-    'https://source.unsplash.com/2000x1200/?ocean,glassy'
+    'https://images.unsplash.com/photo-1501959915551-4e8a04a2b59a?q=80&w=1800&auto=format&fit=crop'
   ],
   KING_TIDE: [
-    'https://images.unsplash.com/photo-1522512115668-c09775d6f424?q=80&w=2000&auto=format&fit=crop',
-    'https://source.unsplash.com/2000x1200/?flood,street,coast',
-    'https://source.unsplash.com/2000x1200/?king-tide,flooding'
+    'https://images.unsplash.com/photo-1522512115668-c09775d6f424?q=80&w=1800&auto=format&fit=crop'
   ],
   EMISSIONS: [
-    'https://images.unsplash.com/photo-1545259741-2ea3ebf61fa7?q=80&w=2000&auto=format&fit=crop',
-    'https://source.unsplash.com/2000x1200/?wind-turbines,renewable',
-    'https://source.unsplash.com/2000x1200/?solar,renewable,energy'
+    'https://images.unsplash.com/photo-1545259741-2ea3ebf61fa7?q=80&w=1800&auto=format&fit=crop'
   ],
 }
 
@@ -103,31 +79,17 @@ const WILDCARDS = [
 
 function prettyMoney(m){ return `$${m.toFixed(0)}M` }
 
-/** Small image component with robust onError fallbacks */
-function PhotoBG({srcs, className}) {
-  const [idx, setIdx] = useState(0)
-  const src = srcs[Math.min(idx, srcs.length - 1)]
-  return (
-    <img
-      className={className}
-      src={src}
-      alt=""
-      onError={()=> setIdx(i => (i < srcs.length - 1 ? i + 1 : i))}
-      loading="lazy"
-      decoding="async"
-    />
-  )
-}
-
 export default function App(){
   const [difficulty, setDifficulty] = useState('normal')
   const [selected, setSelected] = useState('NOURISH')
-  const [showIntro, setShowIntro] = useState(false)
+  const [showIntro, setShowIntro] = useState(true) // show by default
+  const INTRO_KEY = 'stb_hide_intro_v2'           // new key so it shows this version
 
   useEffect(() => {
-    // Show intro once unless user hid it
-    const hide = typeof window !== 'undefined' && localStorage.getItem('stb_hide_intro') === '1'
-    setShowIntro(!hide)
+    try {
+      const hide = localStorage.getItem(INTRO_KEY) === '1'
+      if (hide) setShowIntro(false)
+    } catch {}
   }, [])
 
   function initialState(diffKey = difficulty){
@@ -199,7 +161,7 @@ export default function App(){
       }
       case 'SEAWALL':
         if (!state.seawallBuilt){
-          cost -= OPTIONS.SEWALL?.cost || OPTIONS.SEAWALL.cost
+          cost -= OPTIONS.SEAWALL.cost
           notes.push('Built Seawall: base loss becomes –20 ft/dec permanently.')
         } else {
           notes.push('Seawall already built.')
@@ -236,7 +198,7 @@ export default function App(){
         break
       case 'RECALL':
         if (state.lastRate !== null && state.lastBaseRate !== null){
-          const improvement = state.lastRate - state.lastBaseRate // (-5) - (-10) = +5
+          const improvement = state.lastRate - state.lastBaseRate // e.g., (-5) - (-10) = +5
           widthChangeFromWild = -improvement
           rate += -improvement
           why = 'Policy reversal removes last decade’s management benefit.'
@@ -258,17 +220,15 @@ export default function App(){
         why = 'Emergency response and repairs during extreme high tide.'
         notes.push('King Tide → –$30M budget immediately.')
         break
-      case 'EMISSIONS':
-        // ✅ Apply the improvement IMMEDIATELY this decade (so you see –5, not –10)
-        {
-          const before = rate
-          rate = Math.max(rate, -5)
-          widthChangeFromWild = rate - before
-          why = 'Rapid decarbonization slows sea-level rise and wave energy starting now.'
-          futureNote = 'Baseline set to –5 ft/decade from now on.'
-          notes.push('Emissions cut → baseline improves to –5 ft/decade immediately and going forward.')
-        }
+      case 'EMISSIONS': {
+        const before = rate           // e.g., -10
+        rate = Math.max(rate, -5)     // improve to -5 this decade
+        widthChangeFromWild = rate - before // e.g., +5 improvement
+        why = 'Rapid decarbonization slows sea-level rise starting now.'
+        futureNote = 'Baseline set to –5 ft/decade from now on.'
+        notes.push('Emissions cut → baseline improves to –5 ft/decade immediately and going forward.')
         break
+      }
     }
 
     return { rate, cost, notes, why, futureNote, budgetChange, widthChangeFromWild }
@@ -449,11 +409,12 @@ export default function App(){
 
   return (
     <div className="container">
-      {/* CENTERED, BIG TITLE */}
+      {/* CENTERED, BIG TITLE + Help */}
       <div className="masthead">
         <div className="mast-title">Save the Beach!</div>
         <div className="mast-sub">Survive to {END_YEAR} without the beach or the budget hitting zero.</div>
         {badge}
+        <button className="secondary help-btn" onClick={()=>setShowIntro(true)}>Help</button>
       </div>
 
       {/* Settings */}
@@ -502,7 +463,7 @@ export default function App(){
           </div>
         </div>
 
-        {/* ACTIONS (photo backgrounds with reliable fallbacks using <img>) */}
+        {/* ACTIONS — move cards use inline SVGs */}
         <div className="card">
           <div className="header"><h3>Choose Your Move</h3></div>
           <div className="content">
@@ -510,14 +471,14 @@ export default function App(){
               {ORDER.map(key => {
                 const o = OPTIONS[key]
                 const isSel = selected === key
-                const srcs = MOVE_BG[key]
+                const src = MOVE_BG[key][0]
                 return (
                   <div
                     key={key}
                     className={'option-card photo' + (isSel ? ' selected' : '')}
                     onClick={()=>!s.gameOver && setSelected(key)}
                   >
-                    <PhotoBG className="option-photo" srcs={srcs} />
+                    <div className="option-photo" style={{ backgroundImage: `url('${src}')` }} />
                     <div className="option-overlay" />
                     <div className="option-top">
                       <div className="option-title">{o.title}</div>
@@ -558,7 +519,7 @@ export default function App(){
             </ul>
             <div className="intro-actions">
               <label className="intro-check">
-                <input type="checkbox" onChange={(e)=> localStorage.setItem('stb_hide_intro', e.target.checked ? '1' : '0')} />
+                <input type="checkbox" onChange={(e)=> localStorage.setItem(INTRO_KEY, e.target.checked ? '1' : '0')} />
                 Don’t show again
               </label>
               <button className="primary" onClick={()=> setShowIntro(false)}>Start</button>
