@@ -1,31 +1,30 @@
-import React, { useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import React, { useState } from 'react'
 import './styles.css'
 
 const START_YEAR = 2020
 const END_YEAR = 2100
 const ROUNDS = 8
 const START_WIDTH = 50 // ft
-const GOAL_WIDTH = 10 // win threshold
+const GOAL_WIDTH = 10
 const START_BUDGET = 200 // $M
-const BASELINE_EROSION = -10 // ft/decade
+const BASELINE = -10 // ft/decade (no action)
 
 const OPTIONS = {
-  NONE: {key:'NONE', title:'Do Nothing', cost:'—', effect:'Draw a Wild Card', desc:'Skip a management action and draw a random event.'},
-  NOURISH: {key:'NOURISH', title:'Beach Nourishment', cost:'–$15M', effect:'≤ –5 ft this decade', desc:'Adds sand; slows loss this round.'},
-  DUNES: {key:'DUNES', title:'Dune Restoration', cost:'–$5M', effect:'≤ –5 ft this decade', desc:'Plant/stabilize dunes; slows loss.'},
-  SEAWALL: {key:'SEAWALL', title:'Seawall / Armoring', cost:'–$150M build; –$10M/dec maint', effect:'–20 ft/decade ongoing', desc:'Protects backshore; accelerates beach loss.'},
-  REEF: {key:'REEF', title:'Artificial Reef', cost:'–$100M build', effect:'≤ –5 ft; +$10M/dec revenue', desc:'Offshore reef reduces energy and draws surfers.'},
-  RETREAT: {key:'RETREAT', title:'Managed Retreat', cost:'–$175M one-time', effect:'0 ft/dec; –$10M/dec revenue', desc:'Relocate infrastructure and let beach migrate.'},
+  NONE:     {key:'NONE',     title:'Do Nothing',           cost:0,   desc:'Draw a Wild Card (random event).'},
+  NOURISH:  {key:'NOURISH',  title:'Beach Nourishment',    cost:15,  desc:'Reduce loss by 5 ft this decade.'},
+  DUNES:    {key:'DUNES',    title:'Dune Restoration',     cost:5,   desc:'Reduce loss by 2 ft this decade.'},
+  REEF:     {key:'REEF',     title:'Artificial Reef',      cost:100, desc:'Reduce base loss to –5 ft/dec for 30 years.'},
+  SEAWALL:  {key:'SEAWALL',  title:'Seawall / Armoring',   cost:150, desc:'Set base loss to –20 ft/dec permanently.'},
+  RETREAT:  {key:'RETREAT',  title:'Managed Retreat',      cost:150, desc:'0 ft loss for the next 3 decades.'},
 }
 const ORDER = ['NOURISH','DUNES','REEF','SEAWALL','RETREAT','NONE']
 
 const WILDCARDS = [
-  { key: 'STORM', name: '100-Year Storm', text: 'Immediate –20 ft beach this decade. Baseline rate unchanged.' },
-  { key: 'RECALL', name: 'Recall', text: 'Reverse last decade’s management effect on width (money not refunded).' },
-  { key: 'LA_NINA', name: 'La Niña Year', text: '0 ft erosion this decade (no loss).' },
-  { key: 'KING_TIDE', name: 'King Tide Flooding', text: 'Lose $30M from budget immediately (width unchanged).' },
-  { key: 'EMISSIONS', name: 'Emissions Reduction', text: 'Global shift: baseline erosion becomes –5 ft/decade permanently.' },
+  { key: 'STORM',     name: '100-Year Storm',     text: 'Immediate –20 ft this decade.' },
+  { key: 'RECALL',    name: 'Recall',             text: 'Reverse last decade’s management effect on width (money not refunded).' },
+  { key: 'LA_NINA',   name: 'La Niña Year',       text: '0 ft erosion this decade (no loss).' },
+  { key: 'KING_TIDE', name: 'King Tide Flooding', text: '–$30M budget immediately (width unchanged).' },
+  { key: 'EMISSIONS', name: 'Emissions Reduction',text: 'Global shift: baseline improves to –5 ft/decade.' },
 ]
 
 function prettyMoney(m){ return `$${m.toFixed(0)}M` }
@@ -36,158 +35,169 @@ export default function App(){
     round: 1,
     width: START_WIDTH,
     budget: START_BUDGET,
-    baseline: BASELINE_EROSION,
+    baseBaseline: BASELINE,    // –10 normally; EMISSIONS can improve to –5
+    reefBuilt: false,
+    reefRoundsLeft: 0,         // 3 rounds (30 yrs) after building
     seawallBuilt: false,
-    reefCount: 0,
-    retreatActive: false,
-    lastDecadeErosionRate: null,
-    log: [`Game start: ${START_YEAR}. Beach=${START_WIDTH} ft, Budget=${prettyMoney(START_BUDGET)}. Baseline erosion –10 ft/decade.`],
+    retreatRoundsLeft: 0,      // 3 rounds (30 yrs) after choosing
+    lastRate: null,            // last decade’s final delta
+    lastBaseRate: null,        // last decade’s base before per-decade action
+    log: [`Start ${START_YEAR}: Beach=${START_WIDTH} ft, Budget=${prettyMoney(START_BUDGET)}, Baseline ${BASELINE} ft/dec.`],
     gameOver: false,
     victory: false,
     history: [{year:START_YEAR, width:START_WIDTH, budget:START_BUDGET}],
   })
   const [selected, setSelected] = useState('NOURISH')
-  const [revealedWild, setRevealedWild] = useState(null)
-  const [flipWild, setFlipWild] = useState(false)
+  const [wild, setWild] = useState(null)
 
-  const statusBadge = s.gameOver
-    ? (s.victory ? <span className="badge green">Victory 🎉</span> : <span className="badge red">Game Over</span>)
-    : <span className="badge blue">Round {s.round} / {ROUNDS}</span>
+  // Priority: Retreat (0) > Seawall (-20) > Reef active (max(base,-5)) > Baseline
+  function currentBaseRate(state){
+    if (state.retreatRoundsLeft > 0) return 0
+    if (state.seawallBuilt) return -20
+    let base = state.baseBaseline
+    if (state.reefRoundsLeft > 0) base = Math.max(base, -5)
+    return base
+  }
 
-  function computeErosion(choice, state){
-    let cost = 0, revenue = 0
-    let notes = []
-    let rate = state.baseline
-
-    if (state.retreatActive){
-      rate = 0
-      revenue -= 10
-      notes.push('Managed Retreat active: erosion 0 ft/dec; –$10M revenue.')
-    }
-    if (state.seawallBuilt){
-      rate = -20
-      cost -= 10 // maintenance
-      notes.push('Seawall maintenance –$10M; erosion –20 ft/dec.')
-    }
+  function computeThisDecade(choice, state){
+    const baseRate = currentBaseRate(state)
+    let rate = baseRate
+    let cost = 0
+    const notes = []
 
     switch (choice){
       case 'NOURISH':
-        cost -= 15
-        rate = Math.min(rate, -5)
-        notes.push('Beach Nourishment this decade: –$15M; erosion ≤ –5 ft.')
+        cost -= OPTIONS.NOURISH.cost
+        rate = baseRate + 5
+        notes.push('Beach Nourishment: reduced loss by 5 ft this decade.')
         break
       case 'DUNES':
-        cost -= 5
-        rate = Math.min(rate, -5)
-        notes.push('Dune Restoration this decade: –$5M; erosion ≤ –5 ft.')
+        cost -= OPTIONS.DUNES.cost
+        rate = baseRate + 2
+        notes.push('Dune Restoration: reduced loss by 2 ft this decade.')
         break
+      case 'REEF': {
+        if (!state.reefBuilt){
+          cost -= OPTIONS.REEF.cost
+          notes.push('Built Artificial Reef: base loss becomes –5 ft/dec for 30 years.')
+          // Apply its benefit immediately unless overridden by Retreat/Seawall
+          if (state.retreatRoundsLeft === 0 && !state.seawallBuilt){
+            rate = Math.max(baseRate, -5)
+          }
+        } else {
+          notes.push(state.reefRoundsLeft > 0 ? 'Reef already active (no extra cost).' : 'Reef effect ended (no extra cost).')
+          rate = baseRate
+        }
+        break
+      }
       case 'SEAWALL':
         if (!state.seawallBuilt){
-          cost -= 150
-          notes.push('Built Seawall –$150M. From now: erosion –20 ft/dec; –$10M/dec maint.')
+          cost -= OPTIONS.SEWALL?.cost || OPTIONS.SEAWALL.cost
+          notes.push('Built Seawall: base loss becomes –20 ft/dec permanently.')
+        } else {
+          notes.push('Seawall already built.')
         }
-        break
-      case 'REEF':
-        cost -= 100
-        rate = Math.min(rate, -5)
-        notes.push('Built Artificial Reef –$100M. Erosion ≤ –5 ft; +$10M/dec revenue.')
+        rate = baseRate
         break
       case 'RETREAT':
-        if (!state.retreatActive){
-          cost -= 175
-          notes.push('Managed Retreat –$175M. From now: erosion 0 ft/dec; –$10M/dec revenue.')
-        }
+        cost -= OPTIONS.RETREAT.cost
+        notes.push('Managed Retreat: 0 ft loss for this and the next 2 decades.')
         rate = 0
         break
       default:
         notes.push('Chose to do nothing → draw a Wild Card.')
     }
-
-    const futureReefCount = state.reefCount + (choice === 'REEF' ? 1 : 0)
-    if (futureReefCount > 0){
-      revenue += 10 * futureReefCount
-      notes.push(`Reef tourism +$${10 * futureReefCount}M/decade.`)
-    }
-
-    return { rate, cost, revenue, notes }
+    return { baseRate, rate, cost, notes }
   }
 
   function drawWild(){ return WILDCARDS[Math.floor(Math.random()*WILDCARDS.length)] }
 
-  function applyWild(card, state, base){
-    let { rate, cost, revenue } = base
-    let widthDelta = rate
+  function applyWild(card, state, baseCalc){
+    let { rate, cost } = baseCalc
     const notes = [`Wild Card: ${card.name}.`]
-
     switch(card.key){
       case 'STORM':
-        widthDelta += -20
+        rate += -20
         notes.push('100-Year Storm → additional –20 ft this decade.')
         break
-      case 'RECALL': {
-        const last = state.lastDecadeErosionRate
-        if (last !== null){
-          const improvement = last - state.baseline   // e.g., -5 - (-10) = +5
-          widthDelta += -improvement                  // apply extra loss (e.g., -5)
-          notes.push('Recall → reversed last decade’s management effect on width (money not refunded).')
+      case 'RECALL':
+        if (state.lastRate !== null && state.lastBaseRate !== null){
+          const improvement = state.lastRate - state.lastBaseRate // e.g., (-5) - (-10) = +5
+          rate += -improvement
+          notes.push('Recall → reversed last decade’s management benefit on width.')
         } else {
           notes.push('Recall had no effect (no prior management recorded).')
         }
         break
-      }
       case 'LA_NINA':
-        widthDelta = 0
-        notes.push('La Niña → 0 ft loss this decade.')
+        rate = 0
+        notes.push('La Niña → 0 ft change this decade.')
         break
       case 'KING_TIDE':
         cost += -30
-        notes.push('King Tide Flooding → –$30M budget immediately.')
+        notes.push('King Tide → –$30M budget immediately.')
         break
       case 'EMISSIONS':
-        if (state.baseline < -5) notes.push('Global Emissions Reduction → baseline improves to –5 ft/decade.')
+        notes.push('Emissions cut → baseline improves to –5 ft/decade from now on.')
         break
     }
-    return { rate, cost, revenue, widthDelta, notes }
+    return { rate, cost, notes }
   }
 
   function nextTurn(choice){
     if (s.gameOver) return
-    const base = computeErosion(choice, s)
 
-    let seawallBuilt = s.seawallBuilt || choice === 'SEAWALL'
-    let reefCount = s.reefCount + (choice === 'REEF' ? 1 : 0)
-    let retreatActive = s.retreatActive || choice === 'RETREAT'
-    let baseline = s.baseline
+    const baseCalc = computeThisDecade(choice, s)
+    let { baseRate, rate, cost, notes } = baseCalc
 
-    let widthDelta = base.rate
-    let cost = base.cost
-    let revenue = base.revenue
-    let notes = [...base.notes]
-    let wild = null
+    // persistent toggles & timers
+    let reefBuilt = s.reefBuilt
+    let reefRoundsLeft = s.reefRoundsLeft
+    let seawallBuilt = s.seawallBuilt
+    let retreatRoundsLeft = s.retreatRoundsLeft
+    let baseBaseline = s.baseBaseline
 
-    if (choice === 'NONE'){
-      wild = drawWild()
-      const applied = applyWild(wild, s, base)
-      widthDelta = applied.widthDelta
-      cost += applied.cost
-      revenue += applied.revenue
-      notes = [...notes, ...applied.notes]
-      if (wild.key === 'EMISSIONS') baseline = Math.max(baseline, -5)
+    if (choice === 'REEF' && !reefBuilt){
+      reefBuilt = true
+      reefRoundsLeft = 3 // 30 years including THIS decade
+    }
+    if (choice === 'SEAWALL' && !seawallBuilt){
+      seawallBuilt = true
+    }
+    if (choice === 'RETREAT'){
+      retreatRoundsLeft = 3 // includes this decade
     }
 
-    const newBudget = s.budget + cost + revenue
-    const newWidth = Math.max(0, s.width + widthDelta)
+    // wild card if doing nothing
+    let drawn = null
+    if (choice === 'NONE'){
+      drawn = drawWild()
+      const applied = applyWild(drawn, s, baseCalc)
+      rate = applied.rate
+      cost += applied.cost
+      notes = [...notes, ...applied.notes]
+      if (drawn.key === 'EMISSIONS') baseBaseline = Math.max(baseBaseline, -5)
+    }
+
+    // Apply width/budget
+    const newBudget = s.budget + cost
+    const newWidth = Math.max(0, s.width + rate)
+
+    // Timers tick AFTER applying this decade
+    if (reefRoundsLeft > 0) reefRoundsLeft -= 1
+    if (retreatRoundsLeft > 0) retreatRoundsLeft -= 1
 
     const lines = []
-    lines.push(`Year ${s.year}–${s.year+10}: chose ${OPTIONS[choice]?.title || 'Action'}.`)
+    const label = OPTIONS[choice]?.title || 'Action'
+    lines.push(`Year ${s.year}–${s.year+10}: ${label}.`)
     notes.forEach(n => lines.push(`• ${n}`))
-    lines.push(`• Erosion this decade: ${widthDelta} ft`)
-    lines.push(`• Budget change: ${prettyMoney(cost + revenue)} → ${prettyMoney(newBudget)}`)
-    lines.push(`• Beach width: ${s.width} ft → ${newWidth} ft`)
+    lines.push(`• Base rate: ${baseRate} ft; final change this decade: ${rate} ft`)
+    lines.push(`• Budget: ${prettyMoney(s.budget)} → ${prettyMoney(newBudget)}`)
+    lines.push(`• Width: ${s.width} ft → ${newWidth} ft`)
 
     const reachedEnd = s.round >= ROUNDS
     const victory = reachedEnd && newWidth >= GOAL_WIDTH && newBudget > 0
-    const gameOver = newWidth <= 0 || newBudget <= 0 || reachedEnd
+    const gameOver = (newWidth <= 0) || (newBudget <= 0) || reachedEnd
 
     setS({
       ...s,
@@ -195,18 +205,19 @@ export default function App(){
       round: s.round + 1,
       width: newWidth,
       budget: newBudget,
-      baseline,
+      baseBaseline,
+      reefBuilt,
+      reefRoundsLeft,
       seawallBuilt,
-      reefCount,
-      retreatActive,
-      lastDecadeErosionRate: base.rate,
+      retreatRoundsLeft,
+      lastRate: rate,
+      lastBaseRate: baseRate,
       log: [lines.join('\n'), ...s.log],
       gameOver,
       victory,
       history: [...s.history, {year:s.year+10, width:newWidth, budget:newBudget}],
     })
-    setRevealedWild(wild)
-    setFlipWild(choice === 'NONE')
+    setWild(drawn)
   }
 
   function resetGame(){
@@ -215,38 +226,37 @@ export default function App(){
       round: 1,
       width: START_WIDTH,
       budget: START_BUDGET,
-      baseline: BASELINE_EROSION,
+      baseBaseline: BASELINE,
+      reefBuilt: false,
+      reefRoundsLeft: 0,
       seawallBuilt: false,
-      reefCount: 0,
-      retreatActive: false,
-      lastDecadeErosionRate: null,
-      log: [`Game start: ${START_YEAR}. Beach=${START_WIDTH} ft, Budget=${prettyMoney(START_BUDGET)}. Baseline erosion –10 ft/decade.`],
+      retreatRoundsLeft: 0,
+      lastRate: null,
+      lastBaseRate: null,
+      log: [`Start ${START_YEAR}: Beach=${START_WIDTH} ft, Budget=${prettyMoney(START_BUDGET)}, Baseline ${BASELINE} ft/dec.`],
       gameOver: false,
       victory: false,
       history: [{year:START_YEAR, width:START_WIDTH, budget:START_BUDGET}],
     })
     setSelected('NOURISH')
-    setRevealedWild(null)
-    setFlipWild(false)
+    setWild(null)
   }
 
-  // summary deltas
-  const last = s.history[s.history.length-1] || {width:START_WIDTH, budget:START_BUDGET}
-  const prev = s.history.length>1 ? s.history[s.history.length-2] : last
-  const widthDelta = last.width - prev.width
-  const budgetDelta = last.budget - prev.budget
-
-  const pctWidth = Math.max(0, Math.min(100, (s.width/START_WIDTH)*100))
-  const goalLeftPct = (GOAL_WIDTH / START_WIDTH) * 100
+  // Top-down beach visual: map 50 ft => 50% sand; clamp 0–100%
+  const sandPct = Math.max(0, Math.min(100, (s.width/START_WIDTH)*50))
 
   return (
     <div className="container">
       <div className="header">
         <div>
           <div className="title">Save the Beach!</div>
-          <div style={{color:'#475569', fontSize:12}}>Start {START_WIDTH} ft • Budget ${START_BUDGET}M • Baseline –10 ft/dec • Goal: reach {END_YEAR} with ≥ {GOAL_WIDTH} ft and money left</div>
+          <div style={{color:'#475569', fontSize:12}}>
+            Start {START_WIDTH} ft • Budget ${START_BUDGET}M • Baseline –10 ft/dec • Goal: reach {END_YEAR} with ≥ {GOAL_WIDTH} ft
+          </div>
         </div>
-        {statusBadge}
+        {s.gameOver
+          ? (s.victory ? <span className="badge green">Victory 🎉</span> : <span className="badge red">Game Over</span>)
+          : <span className="badge blue">Round {s.round}/{ROUNDS}</span>}
       </div>
 
       <div className="grid">
@@ -258,45 +268,24 @@ export default function App(){
               <Stat label="Year" value={`${s.year}`} />
               <Stat label="Beach Width" value={`${s.width} ft`} />
               <Stat label="Budget" value={prettyMoney(s.budget)} />
-              <Stat label="Baseline" value={`${s.baseline} ft/dec`} />
-              <Stat label="Reefs" value={`${s.reefCount}`} />
+              <Stat label="Base (this turn)" value={`${currentBaseRate(s)} ft/dec`} />
+              <Stat label="Reef left" value={`${s.reefRoundsLeft} rounds`} />
               <Stat label="Seawall?" value={s.seawallBuilt ? 'Yes' : 'No'} />
-              <Stat label="Retreat?" value={s.retreatActive ? 'Active' : 'No'} />
+              <Stat label="Retreat left" value={`${s.retreatRoundsLeft} rounds`} />
               <Stat label="Round" value={`${s.round}/${ROUNDS}`} />
             </div>
 
-            {/* shoreline meter */}
-            <div className="beach-meter">
-              <div className="beach-fill" style={{width:`${pctWidth}%`}}></div>
-              <div className="beach-label">{s.width} ft</div>
-              <div className="beach-goal" style={{ left: `${goalLeftPct}%` }} title="Win threshold"></div>
+            {/* TOP-DOWN COASTAL VISUAL */}
+            <div className="coast">
+              <div className="water"></div>
+              <div className="sand" style={{width: sandPct + '%'}}></div>
+              <div className="neighborhood"></div>
             </div>
 
-            {/* timeline */}
-            <div className="timeline">
-              {Array.from({length: ROUNDS}).map((_,i)=>{
-                const done = i < s.round-1
-                const active = i === s.round-1 && !s.gameOver
-                return <span key={i} className={`dot ${done ? 'done' : active ? 'active' : ''}`}></span>
-              })}
-            </div>
-
-            {/* wild card */}
-            {revealedWild && (
-              <div className="wild-wrap">
-                <div className={`wild-card ${flipWild ? 'flip' : ''}`}>
-                  <div className="wild-front">Wild Card…</div>
-                  <div className="wild-back"><b>{revealedWild.name}</b><br/>{revealedWild.text}</div>
-                </div>
-              </div>
-            )}
-
-            {/* round summary delta */}
-            {s.history.length > 1 && (
-              <div className="summary">
-                <span>Round summary:</span>
-                <span>Width: <span className={`delta ${widthDelta>=0?'pos':'neg'}`}>{widthDelta>=0?'+':''}{widthDelta} ft</span></span>
-                <span>Budget: <span className={`delta ${budgetDelta>=0?'pos':'neg'}`}>{budgetDelta>=0?'+':''}{prettyMoney(budgetDelta)}</span></span>
+            {/* Wild Card message */}
+            {wild && (
+              <div style={{marginTop:10, fontSize:14, color:'#334155'}}>
+                <b>Wild Card:</b> {wild.name} — {wild.text}
               </div>
             )}
           </div>
@@ -309,15 +298,21 @@ export default function App(){
             <div className="option-grid">
               {ORDER.map(key => {
                 const o = OPTIONS[key]
-                const selectedClass = key === selected ? 'selected' : ''
+                const isSelected = selected === key
                 return (
-                  <div key={key} className={`option-card ${selectedClass}`} onClick={()=>!s.gameOver && setSelected(key)}>
+                  <div key={key} className={'option-card' + (isSelected ? ' selected' : '')}
+                       onClick={()=>!s.gameOver && setSelected(key)}>
                     <div className="option-top">
                       <div className="option-title">{o.title}</div>
-                      <div className="option-meta">{o.cost}</div>
+                      <div className="option-meta">{o.cost > 0 ? `–$${o.cost}M` : '—'}</div>
                     </div>
-                    <div className="option-meta">{o.effect}</div>
-                    <div style={{fontSize:12, color:'#64748b'}}>{o.desc}</div>
+                    <div className="option-meta">{o.desc}</div>
+                    {key === 'NOURISH' && s.retreatRoundsLeft > 0 && (
+                      <div className="option-meta">During retreat: <b>+5 ft</b> this decade.</div>
+                    )}
+                    {key === 'DUNES' && s.retreatRoundsLeft > 0 && (
+                      <div className="option-meta">During retreat: <b>+2 ft</b> this decade.</div>
+                    )}
                   </div>
                 )
               })}
@@ -327,7 +322,7 @@ export default function App(){
               <button className="secondary" onClick={resetGame}>Reset</button>
             </div>
             <div style={{fontSize:12, color:'#64748b', marginTop:8}}>
-              • Reef revenue: +$10M per decade per reef. Seawall maintenance: –$10M/decade. Retreat: –$10M/decade revenue, 0 ft erosion.
+              • One-time costs for Reef/Seawall/Retreat; per-use costs for Nourishment/Dunes. No ongoing revenues/costs.
             </div>
           </div>
         </div>
@@ -344,8 +339,8 @@ export default function App(){
       </div>
 
       <div className="footer-hints">
-        <span>Win by reaching {END_YEAR} with ≥ {GOAL_WIDTH} ft of beach and budget &gt; 0.</span>
-        <span>Mix options: nature-based, hard engineering, or risk a wild card.</span>
+        <span>Tip: Reef gives –5 ft/dec for 3 rounds; Nourish/Dunes add +5/+2 that decade. Retreat sets base to 0 for 3 rounds.</span>
+        <span>Win by {END_YEAR} with ≥ {GOAL_WIDTH} ft and money left.</span>
       </div>
     </div>
   )
