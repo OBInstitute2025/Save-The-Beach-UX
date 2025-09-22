@@ -5,7 +5,6 @@ const START_YEAR = 2020
 const END_YEAR = 2100
 const ROUNDS = 8
 const START_WIDTH = 50 // ft
-const GOAL_WIDTH = 10
 
 // Difficulty presets (baseline loss & starting budget)
 const DIFFICULTIES = {
@@ -34,32 +33,52 @@ const WILDCARDS = [
 
 function prettyMoney(m){ return `$${m.toFixed(0)}M` }
 
-// tiny deterministic PRNG so wild cards can be replayed with the same seed
-function mulberry32(i){
-  let a = i | 0
-  return function(){
-    a |= 0; a = (a + 0x6D2B79F5) | 0
-    let t = Math.imul(a ^ (a >>> 15), 1 | a)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
+// --- Icons (inline SVGs) ---
+const IconNourish = () => (
+  <svg viewBox="0 0 64 64" className="option-icon" aria-hidden="true">
+    <path d="M6 42h52" fill="none" stroke="currentColor" strokeWidth="3"/>
+    <path d="M10 38l10-6 14 10 8-4 12 6" fill="none" stroke="currentColor" strokeWidth="3"/>
+    <path d="M21 28a6 6 0 0 0 12 0" fill="none" stroke="currentColor" strokeWidth="3"/>
+  </svg>
+)
+const IconDunes = () => (
+  <svg viewBox="0 0 64 64" className="option-icon" aria-hidden="true">
+    <path d="M6 44c8-8 16-8 24 0s16 8 28-2" fill="none" stroke="currentColor" strokeWidth="3"/>
+    <path d="M20 36l4-8m-2 8l4-8" stroke="currentColor" strokeWidth="3"/>
+  </svg>
+)
+const IconReef = () => (
+  <svg viewBox="0 0 64 64" className="option-icon" aria-hidden="true">
+    <path d="M8 46h48" stroke="currentColor" strokeWidth="3"/>
+    <path d="M18 46c0-10 8-8 8-18m6 18c0-8 8-6 8-14m6 14c0-6 6-4 6-10" fill="none" stroke="currentColor" strokeWidth="3"/>
+    <circle cx="24" cy="26" r="2" fill="currentColor"/>
+  </svg>
+)
+const IconSeawall = () => (
+  <svg viewBox="0 0 64 64" className="option-icon" aria-hidden="true">
+    <rect x="10" y="22" width="12" height="24" fill="currentColor"/>
+    <rect x="24" y="18" width="12" height="28" fill="currentColor" opacity=".9"/>
+    <rect x="38" y="14" width="12" height="32" fill="currentColor" opacity=".8"/>
+    <path d="M2 56c8-4 12-4 20 0s16 4 24 0 16-4 16-4" fill="none" stroke="currentColor" strokeWidth="3" opacity=".6"/>
+  </svg>
+)
+const IconRetreat = () => (
+  <svg viewBox="0 0 64 64" className="option-icon" aria-hidden="true">
+    <path d="M8 34l12-10 12 10v12H8z" fill="currentColor"/>
+    <path d="M38 24l10 8-10 8" fill="none" stroke="currentColor" strokeWidth="3"/>
+  </svg>
+)
+const IconNone = () => (
+  <svg viewBox="0 0 64 64" className="option-icon" aria-hidden="true">
+    <circle cx="32" cy="32" r="20" fill="none" stroke="currentColor" strokeWidth="3"/>
+    <path d="M20 20l24 24" stroke="currentColor" strokeWidth="3"/>
+  </svg>
+)
+const ICONS = { NOURISH: IconNourish, DUNES: IconDunes, REEF: IconReef, SEAWALL: IconSeawall, RETREAT: IconRetreat, NONE: IconNone }
 
 export default function App(){
   const [difficulty, setDifficulty] = useState('normal')
-  const [seedText, setSeedText] = useState('beach')   // you can type anything here
-  const [rngIndex, setRngIndex] = useState(0)
-
-  // helper for deterministic randomness
-  function rand(){
-    // mix the seed text with index into a simple hash
-    let h = 2166136261
-    for (let i=0;i<seedText.length;i++){ h ^= seedText.charCodeAt(i); h += (h<<1) + (h<<4) + (h<<7) + (h<<8) + (h<<24) }
-    const prng = mulberry32((h + rngIndex) >>> 0)
-    const v = prng()
-    setRngIndex(rngIndex + 1)
-    return v
-  }
+  const [selected, setSelected] = useState('NOURISH')
 
   function initialState(diffKey = difficulty){
     const diff = DIFFICULTIES[diffKey]
@@ -70,7 +89,7 @@ export default function App(){
       budget: diff.budget,
       baseBaseline: diff.baseline, // –8/–10/–12; EMISSIONS can improve to –5
       reefBuilt: false,
-      reefRoundsLeft: 0,   // 3 rounds when built
+      reefRoundsLeft: 0,    // 3 rounds when built
       seawallBuilt: false,
       retreatRoundsLeft: 0, // 3 rounds when chosen
       lastRate: null,
@@ -79,16 +98,14 @@ export default function App(){
       gameOver: false,
       victory: false,
       history: [{year:START_YEAR, width:START_WIDTH, budget:diff.budget}],
-      // for Undo
       past: [],
     }
   }
 
   const [s, setS] = useState(initialState())
 
-  // status helpers
   const badge = s.gameOver
-    ? (s.victory ? <span className="badge green">Victory 🎉</span> : <span className="badge red">Game Over</span>)
+    ? (s.victory ? <span className="badge green">Finished 🎉</span> : <span className="badge red">Game Over</span>)
     : <span className="badge blue">Round {s.round}/{ROUNDS}</span>
 
   // Priority: Retreat (0) > Seawall (–20) > Reef active (max(base, –5)) > Baseline
@@ -121,8 +138,9 @@ export default function App(){
         if (!state.reefBuilt){
           cost -= OPTIONS.REEF.cost
           notes.push('Built Artificial Reef: base loss becomes –5 ft/dec for 30 years.')
+          // immediate effect unless overridden
           if (state.retreatRoundsLeft === 0 && !state.seawallBuilt){
-            rate = Math.max(baseRate, -5) // immediate effect unless overridden
+            rate = Math.max(baseRate, -5)
           }
         } else {
           notes.push(state.reefRoundsLeft > 0 ? 'Reef already active.' : 'Reef effect ended.')
@@ -132,7 +150,7 @@ export default function App(){
       }
       case 'SEAWALL':
         if (!state.seawallBuilt){
-          cost -= OPTIONS.SEAWALL.cost
+          cost -= OPTIONS.SEWALL?.cost || OPTIONS.SEAWALL.cost
           notes.push('Built Seawall: base loss becomes –20 ft/dec permanently.')
         } else {
           notes.push('Seawall already built.')
@@ -150,7 +168,7 @@ export default function App(){
     return { baseRate, rate, cost, notes }
   }
 
-  function drawWild(){ return WILDCARDS[Math.floor(rand() * WILDCARDS.length)] }
+  function drawWild(){ return WILDCARDS[Math.floor(Math.random() * WILDCARDS.length)] }
 
   function applyWild(card, state, baseCalc){
     let { rate, cost } = baseCalc
@@ -177,7 +195,7 @@ export default function App(){
 
   function pushPast(snapshot){
     const copy = JSON.parse(JSON.stringify(snapshot))
-    const past = (snapshot.past || []).slice(-20) // cap history
+    const past = (snapshot.past || []).slice(-20)
     copy.past = [...past, { ...snapshot, past: [] }]
     return copy
   }
@@ -191,7 +209,6 @@ export default function App(){
   function nextTurn(choice){
     if (s.gameOver) return
 
-    // save snapshot for Undo
     let working = pushPast(s)
 
     const baseCalc = computeThisDecade(choice, working)
@@ -233,9 +250,11 @@ export default function App(){
     lines.push(`• Budget: ${prettyMoney(working.budget)} → ${prettyMoney(newBudget)}`)
     lines.push(`• Width: ${working.width} ft → ${newWidth} ft`)
 
+    // NEW win/lose logic: lose immediately if width <= 0 or budget <= 0
     const reachedEnd = working.round >= ROUNDS
-    const victory = reachedEnd && newWidth >= GOAL_WIDTH && newBudget > 0
-    const gameOver = (newWidth <= 0) || (newBudget <= 0) || reachedEnd
+    const lost = (newWidth <= 0) || (newBudget <= 0)
+    const victory = !lost && reachedEnd
+    const gameOver = lost || reachedEnd
 
     setS({
       ...working,
@@ -255,27 +274,23 @@ export default function App(){
       victory,
       history: [...working.history, {year:working.year+10, width:newWidth, budget:newBudget}],
     })
-    // keep the drawn card visible in UI
-    // (stored outside state snapshot)
   }
 
   function resetGame(newDiff = difficulty){
-    setRngIndex(0)
     setS(initialState(newDiff))
+    setSelected('NOURISH')
   }
 
   // Top-down beach visual: map 50 ft => 50% sand; clamp 0–100%
   const sandPct = Math.max(0, Math.min(100, (s.width/START_WIDTH)*50))
 
-  // simple end screen
   const EndScreen = () => (
     <div className="modal-backdrop">
       <div className="modal">
-        <h2 style={{marginTop:0}}>{s.victory ? 'You saved the beach! 🏖️' : 'The beach was lost 😞'}</h2>
-        <p>Final year: {END_YEAR}. Width: {s.width} ft. Budget: {prettyMoney(s.budget)}.</p>
+        <h2 style={{marginTop:0}}>{s.victory ? 'You finished the plan! 🏖️' : 'Game over 😞'}</h2>
+        <p>Final year: {s.year}. Width: {s.width} ft. Budget: {prettyMoney(s.budget)}.</p>
         <div style={{display:'flex', gap:8, flexWrap:'wrap', marginTop:8}}>
           <button className="primary" onClick={()=>resetGame()}>Play again</button>
-          <button className="secondary" onClick={()=>resetGame(difficulty)}>Same difficulty</button>
         </div>
       </div>
     </div>
@@ -287,13 +302,13 @@ export default function App(){
         <div>
           <div className="title">Save the Beach!</div>
           <div style={{color:'#475569', fontSize:12}}>
-            Goal: reach {END_YEAR} with ≥ {GOAL_WIDTH} ft and money left
+            Survive to {END_YEAR} without the beach or the budget hitting zero.
           </div>
         </div>
         {badge}
       </div>
 
-      {/* Controls row: Difficulty, Seed, Undo */}
+      {/* Settings: Difficulty + Undo */}
       <div className="card" style={{marginBottom:16}}>
         <div className="header"><h3>Settings</h3></div>
         <div className="content" style={{display:'flex', gap:12, flexWrap:'wrap', alignItems:'center'}}>
@@ -309,15 +324,6 @@ export default function App(){
                 </button>
               ))}
             </div>
-          </div>
-          <div>
-            <div style={{fontSize:12, color:'#64748b'}}>Wild-card Seed</div>
-            <input
-              value={seedText}
-              onChange={e=>{ setSeedText(e.target.value); setRngIndex(0) }}
-              style={{padding:'8px 10px', border:'1px solid rgba(2,6,23,.15)', borderRadius:8}}
-              aria-label="Randomness seed"
-            />
           </div>
           <div style={{marginLeft:'auto'}}>
             <button className="secondary" onClick={undo} disabled={!s.past || s.past.length===0}>Undo decade</button>
@@ -342,7 +348,7 @@ export default function App(){
               <Stat label="Round" value={`${s.round}/${ROUNDS}`} />
             </div>
 
-            {/* TOP-DOWN COASTAL VISUAL */}
+            {/* TOP-DOWN COASTAL VISUAL (taller now) */}
             <div className="coast">
               <div className="water"></div>
               <div className="sand" style={{width: sandPct + '%'}}></div>
@@ -358,23 +364,32 @@ export default function App(){
             <div className="option-grid">
               {ORDER.map(key => {
                 const o = OPTIONS[key]
+                const Icon = ICONS[key]
+                const isSel = selected === key
                 return (
-                  <div key={key} className="option-card" onClick={()=>!s.gameOver && setS({...s, selected:key})}>
+                  <div key={key} className={'option-card' + (isSel ? ' selected' : '')}
+                       onClick={()=>!s.gameOver && setSelected(key)}>
                     <div className="option-top">
-                      <div className="option-title">{o.title}</div>
+                      <div style={{display:'flex', alignItems:'center', gap:8}}>
+                        <Icon />
+                        <div className="option-title">{o.title}</div>
+                      </div>
                       <div className="option-meta">{o.cost > 0 ? `–$${o.cost}M` : '—'}</div>
                     </div>
                     <div className="option-meta">{o.desc}</div>
+                    {key === 'NOURISH' && s.retreatRoundsLeft > 0 && (
+                      <div className="option-meta">During retreat: <b>+5 ft</b> this decade.</div>
+                    )}
+                    {key === 'DUNES' && s.retreatRoundsLeft > 0 && (
+                      <div className="option-meta">During retreat: <b>+2 ft</b> this decade.</div>
+                    )}
                   </div>
                 )
               })}
             </div>
             <div className="actions">
-              <button className="primary" disabled={s.gameOver} onClick={()=>nextTurn(s.selected || 'NOURISH')}>Advance Decade</button>
+              <button className="primary" disabled={s.gameOver} onClick={()=>nextTurn(selected)}>Advance Decade</button>
               <button className="secondary" onClick={()=>resetGame()}>Reset</button>
-            </div>
-            <div style={{fontSize:12, color:'#64748b', marginTop:8}}>
-              Reef gives –5 ft/dec for 3 rounds; Nourish/Dunes add +5/+2 that decade. Retreat sets base to 0 for 3 rounds.
             </div>
           </div>
         </div>
