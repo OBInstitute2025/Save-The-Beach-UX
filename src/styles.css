@@ -42,7 +42,7 @@ body {
 .stat .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
 .stat .value { font-size: 18px; font-weight: 700; }
 
-/* Top-down coastal visual (tall & immersive) */
+/* Top-down coastal visual */
 .coast {
   margin-top:14px;
   height: clamp(240px, 50vh, 560px);
@@ -85,7 +85,7 @@ body {
   box-shadow: inset 8px 0 12px rgba(0,0,0,0.08);
 }
 
-/* Photoreal option cards (full-bleed background via CSS var) */
+/* Photoreal option cards (inline background-image from React) */
 .option-grid { display:grid; grid-template-columns:1fr; gap:10px; margin-top:8px; }
 .option-card.photo {
   border:1px solid rgba(2,6,23,0.15);
@@ -94,10 +94,7 @@ body {
   display:flex; flex-direction:column; gap:6px;
   cursor:pointer; color:#fff; position:relative;
   min-height: 102px;
-  background-image: linear-gradient(to bottom, rgba(0,0,0,.15), rgba(0,0,0,.55)), var(--bg);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background-color: #000; /* fallback if image fails */
 }
 .option-card.photo:hover { transform: translateY(-1px); transition: transform .12s ease; border-color:#0284c7; }
 .option-card.photo.selected { outline:2px solid #0284c7; }
@@ -133,60 +130,9 @@ button.primary:active { transform: translateY(1px); }
 .log { max-height: 350px; overflow: auto; display: grid; gap: 10px; }
 .log-entry { border: 1px dashed rgba(2,6,23,0.15); border-radius: 12px; background: #fff; padding: 10px 12px; font-size: 14px; white-space: pre-wrap; }
 
-/* End-of-game overlay */
+/* Backdrop — darker + blur for better contrast */
 .modal-backdrop {
   position: fixed; inset: 0;
-  background: rgba(2,6,23,.55);
-  display: flex; align-items: center; justify-content: center;
-  padding: 16px;
-  z-index: 20;
-}
-.modal {
-  background: #fff; border: 1px solid rgba(2,6,23,.1);
-  border-radius: 16px; padding: 18px;
-  width: min(560px, 92vw);
-  box-shadow: 0 10px 30px rgba(2,6,23,.25);
-}
-
-/* Photoreal wild-card modal — dramatic image with bold impact card */
-.wild-frame {
-  position: relative;
-  width: min(980px, 96vw);
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid rgba(2,6,23,.12);
-  box-shadow: 0 16px 40px rgba(2,6,23,.35);
-  background-image: var(--wild);
-  background-size: cover;
-  background-position: center;
-}
-.wild-gradient {
-  position: absolute; inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,.6) 0%, rgba(0,0,0,.15) 55%, rgba(0,0,0,0) 100%);
-}
-.wild-sheet {
-  position: relative;
-  z-index: 2;
-  margin: 14px;
-  margin-top: min(44vh, 360px);
-  background: rgba(255,255,255,.92);
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(2,6,23,.08);
-  border-radius: 14px;
-  padding: 14px 16px 16px;
-}
-.wild-title { font-size: 24px; font-weight: 900; }
-.wild-sub { color:#334155; margin: 4px 0 10px; }
-.wild-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
-.badge-num {
-  font-weight: 800; font-size: 14px;
-  padding: 6px 10px; border-radius: 999px; color: #fff;
-}
-.badge-num.good { background: #16a34a; }
-.badge-num.bad  { background: #dc2626; }
-.wild-mini { color:#475569; font-size: 12px; margin-top: 2px; }
-.wild-why { margin-top: 8px; font-size: 13px; color:#0f172a; }
-.wild-future { margin-top: 6px; font-size: 12px; color:#0f172a; opacity:.8; }
-.wild-actions { display:flex; justify-content:flex-end; gap:8px; margin-top: 10px; }
-
-@media (max-width: 700px) { .stats { grid-template-columns: repeat(2,1fr); } }
+  background: rgba(2,6,23,.72);
+  backdrop-filter: blur(2px);
+  display: flex; align-items: ce
