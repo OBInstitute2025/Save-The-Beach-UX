@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import './styles.v12.css'  // new filename to ensure fresh styling
+import './styles.css'  // keep your existing filename
 
 /* =========================
    Game constants
