@@ -50,7 +50,7 @@ body {
 .stat .value { font-size: 18px; font-weight: 800; font-family: Outfit, Inter, ui-sans-serif; }
 
 /* Top-down coastal visual */
-.coast { margin-top:14px; height: clamp(260px, 56vh, 600px); border-radius:14px; overflow:hidden; display:flex; border:1px solid rgba(2,6,23,0.08); }
+.coast { margin-top:14px; height: clamp(320px, 62vh, 680px); border-radius:14px; overflow:hidden; display:flex; border:1px solid rgba(2,6,23,0.08); }
 .water {
   flex: 1; position:relative;
   background: linear-gradient(90deg, var(--water), var(--water2));
@@ -76,12 +76,19 @@ body {
   background-image: radial-gradient(rgba(0,0,0,0.04) 1px, transparent 1px);
   background-size: 10px 10px;
 }
-/* “Shoreline swash” — subtle animated foam band that moves a few px */
+/* “Shoreline swash” — animated foam band that moves in/out a few px */
 .shoreline {
-  position:absolute; left:-8px; top:0; bottom:0; width:12px;
-  background: linear-gradient(90deg, rgba(255,255,255,.85), rgba(255,255,255,.35), transparent);
-  filter: blur(0.6px);
-  animation: swash 3.6s ease-in-out infinite;
+  position:absolute; left:-10px; top:0; bottom:0; width:14px;
+  background: linear-gradient(90deg, rgba(255,255,255,.9), rgba(255,255,255,.45), transparent);
+  filter: blur(0.7px);
+  animation: swash 3.8s ease-in-out infinite;
+  pointer-events:none;
+}
+/* Wet sand band grows/shrinks to suggest run-up */
+.wetband {
+  position:absolute; left:0; top:0; bottom:0; width:14px;
+  background: linear-gradient(90deg, rgba(0,0,0,.09), rgba(0,0,0,.04), transparent);
+  animation: wetRunup 3.8s ease-in-out infinite;
   pointer-events:none;
 }
 .neighborhood {
@@ -91,11 +98,8 @@ body {
 }
 
 /* Option cards (photo backgrounds via <img>) */
-.option-grid { display:grid; grid-template-columns:1fr; gap:10px; margin-top:8px; }
-@media (min-width: 700px) { .option-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1100px){ .option-grid { grid-template-columns: repeat(3, 1fr); } }
+.option-grid { display:grid; grid-template-columns:1fr; gap:10px; margin-top:8px; } /* always stacked, all widths */
 
-/* Slightly shorter than last version */
 .option-card.photo {
   position:relative; border:1px solid rgba(2,6,23,0.15); border-radius:12px;
   padding:10px; display:flex; flex-direction:column; gap:6px; cursor:pointer;
@@ -127,9 +131,7 @@ button.primary:active { transform: translateY(1px); }
 button:focus-visible { outline: 3px solid #0ea5e9; outline-offset: 2px; }
 
 /* Pulsing CTA (Make your move) */
-.cta-pulse {
-  animation: ctaPulse 1.6s ease-in-out infinite;
-}
+.cta-pulse { animation: ctaPulse 1.6s ease-in-out infinite; }
 .cta-pulse:hover { animation-play-state: paused; }
 @keyframes ctaPulse {
   0%, 100% { transform: scale(1); box-shadow: 0 0 0 rgba(2,132,199,0); }
@@ -159,9 +161,6 @@ button:focus-visible { outline: 3px solid #0ea5e9; outline-offset: 2px; }
 }
 .tip-wrap:hover::after, .tip-wrap:focus-within::after { opacity: 1; transform: translateY(-12px); }
 .tip-wrap:hover::before, .tip-wrap:focus-within::before { opacity: 1; }
-@media (max-width: 700px) {
-  .tip-wrap::after { left: 6px; right: 6px; }
-}
 
 /* Log */
 .log { max-height: 350px; overflow:auto; display:grid; gap:10px; }
@@ -204,19 +203,11 @@ button:focus-visible { outline: 3px solid #0ea5e9; outline-offset: 2px; }
 
 @keyframes pop { from { transform: scale(.96); opacity:.6 } to { transform: scale(1); opacity:1 } }
 
-/* Water animations */
-@keyframes waterShift {
-  0%   { background-position: 0% 0%; }
-  100% { background-position: 100% 0%; }
-}
-@keyframes sparkleDrift {
-  0%   { background-position: 0 0; }
-  100% { background-position: 140px 0; }
-}
-@keyframes swash {
-  0%,100% { transform: translateX(0); opacity:.65; }
-  50%     { transform: translateX(-6px); opacity:.95; }
-}
+/* Water + shoreline animations */
+@keyframes waterShift { 0% { background-position: 0% 0%; } 100% { background-position: 100% 0%; } }
+@keyframes sparkleDrift { 0% { background-position: 0 0; } 100% { background-position: 140px 0; } }
+@keyframes swash { 0%,100% { transform: translateX(0); opacity:.7; } 50% { transform: translateX(-10px); opacity:1; } }
+@keyframes wetRunup { 0%,100% { width: 10px; } 50% { width: 20px; } }
 
 /* Respect reduced-motion preferences */
 @media (prefers-reduced-motion: reduce) {
