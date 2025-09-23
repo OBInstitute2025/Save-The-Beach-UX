@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import './styles.css'
+import './styles.v12.css'  // ⬅️ NEW file name to bust all cache
 
 /* =========================
    Game constants
@@ -52,7 +52,7 @@ const MOVE_IMG = {
 const WILDCARD_IMGS = {
   STORM:     paths('wild-storm'),
   RECALL:    paths('wild-recall'),
-  LA_NINA:   paths('wild-lanina'),   // no tilde in filename
+  LA_NINA:   paths('wild-lanina'),
   KING_TIDE: paths('wild-kingtide'),
   EMISSIONS: paths('wild-emissions'),
 }
@@ -137,8 +137,6 @@ export default function App(){
     ? (s.victory ? <span className="badge green">You saved the beach! 🏖️</span> : <span className="badge red">Game Over</span>)
     : <span className="badge blue">Round {s.round}/{ROUNDS}</span>
 
-  // Current base rate priority:
-  // Retreat (0) > Seawall (–20) > Reef active (max(base, –5)) > Baseline
   function currentBaseRate(state){
     if (state.retreatRoundsLeft > 0) return 0
     if (state.seawallBuilt) return -20
@@ -169,7 +167,7 @@ export default function App(){
           cost -= OPTIONS.REEF.cost
           notes.push('Built Artificial Reef: base beach loss becomes –5 ft/dec for 30 years.')
           if (state.retreatRoundsLeft === 0 && !state.seawallBuilt){
-            rate = Math.max(baseRate, -5) // immediate effect this decade
+            rate = Math.max(baseRate, -5)
           }
         } else {
           notes.push(state.reefRoundsLeft > 0 ? 'Reef already active.' : 'Reef effect ended.')
@@ -215,7 +213,7 @@ export default function App(){
         break
       case 'RECALL':
         if (state.lastRate !== null && state.lastBaseRate !== null){
-          const improvement = state.lastRate - state.lastBaseRate // e.g. (-5) - (-10) = +5
+          const improvement = state.lastRate - state.lastBaseRate
           widthChangeFromWild = -improvement
           rate += -improvement
           why = 'Leaders changed their decision, so last decade’s plan was undone and you lose that extra protection.'
@@ -226,7 +224,7 @@ export default function App(){
         }
         break
       case 'LA_NINA':
-        widthChangeFromWild = -rate // cancels whatever the rate was
+        widthChangeFromWild = -rate
         rate = 0
         why = 'La Niña changes wind and storm patterns over the Pacific. We assume gentler waves for now, so there is little or no erosion this decade.'
         notes.push('La Niña → 0 ft change this decade.')
@@ -239,7 +237,7 @@ export default function App(){
         break
       case 'EMISSIONS': {
         const before = rate
-        rate = Math.max(rate, -5)      // immediate improvement this decade
+        rate = Math.max(rate, -5)
         widthChangeFromWild = rate - before
         why = 'Cutting greenhouse gas emissions slows long-term sea-level rise. From now on, we cap the baseline erosion at −5 ft per decade.'
         futureNote = 'Baseline set to −5 ft/decade from now on.'
@@ -271,16 +269,15 @@ export default function App(){
     const baseCalc = computeThisDecade(choice, working)
     let { baseRate, rate, cost, notes } = baseCalc
 
-    // persistent toggles & timers
     let reefBuilt = working.reefBuilt
     let reefRoundsLeft = working.reefRoundsLeft
     let seawallBuilt = working.seawallBuilt
     let retreatRoundsLeft = working.retreatRoundsLeft
     let baseBaseline = working.baseBaseline
 
-    if (choice === 'REEF' && !reefBuilt){ reefBuilt = true; reefRoundsLeft = 3 }      // 30 years
-    if (choice === 'SEAWALL' && !seawallBuilt){ seawallBuilt = true }                 // permanent
-    if (choice === 'RETREAT'){ retreatRoundsLeft = 3 }                                // 3 decades
+    if (choice === 'REEF' && !reefBuilt){ reefBuilt = true; reefRoundsLeft = 3 }
+    if (choice === 'SEAWALL' && !seawallBuilt){ seawallBuilt = true }
+    if (choice === 'RETREAT'){ retreatRoundsLeft = 3 }
 
     let drawn = null
     let wildExtras = null
@@ -291,14 +288,13 @@ export default function App(){
       cost += applied.cost
       notes = [...notes, ...applied.notes]
       wildExtras = applied
-      if (drawn.key === 'EMISSIONS') baseBaseline = Math.max(baseBaseline, -5) // persist improvement
+      if (drawn.key === 'EMISSIONS') baseBaseline = Math.max(baseBaseline, -5)
     }
 
     const budgetDelta = cost
     const newBudget = working.budget + cost
     const newWidth = Math.max(0, working.width + rate)
 
-    // timers tick AFTER applying this decade
     if (reefRoundsLeft > 0) reefRoundsLeft -= 1
     if (retreatRoundsLeft > 0) retreatRoundsLeft -= 1
 
@@ -476,7 +472,6 @@ export default function App(){
         <div className="card">
           <div className="header"><h3>Choose Your Move</h3></div>
           <div className="content">
-            {/* Force stacked layout and add an id for hotfix CSS */}
             <div id="moves" className="option-list" style={{display:'grid', gridTemplateColumns:'1fr'}}>
               {ORDER.map(key => {
                 const o = OPTIONS[key]
