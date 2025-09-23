@@ -19,11 +19,11 @@ const DIFFICULTIES = {
    Actions (moves) & costs
    ========================= */
 const OPTIONS = {
-  NOURISH: { key:'NOURISH', title:'Beach Nourishment',  cost:15,  desc:'Reduce beach loss by 5 ft this decade.' },
-  DUNES:   { key:'DUNES',   title:'Dune Restoration',   cost:5,   desc:'Reduce beach loss by 2 ft this decade.' },
-  REEF:    { key:'REEF',    title:'Artificial Reef',    cost:100, desc:'Set base beach loss to –5 ft/dec for 30 years.' },
-  SEAWALL: { key:'SEAWALL', title:'Seawall / Armoring', cost:150, desc:'Set base beach loss to –20 ft/dec permanently.' },
-  RETREAT: { key:'RETREAT', title:'Managed Retreat',    cost:150, desc:'Set beach loss to 0 for 3 decades.' },
+  NOURISH: { key:'NOURISH', title:'Beach Nourishment',  cost:15,  desc:"Beach shrinks 5 feet less than normal this decade" },
+  DUNES:   { key:'DUNES',   title:'Dune Restoration',   cost:5,   desc:"Beach shrinks 2 feet less than normal this decade" },
+  REEF:    { key:'REEF',    title:'Artificial Reef',    cost:100, desc:"Beach shrinks by only 5 feet/decade for 30 years" },
+  SEAWALL: { key:'SEAWALL', title:'Seawall / Armoring', cost:150, desc:"Beach shrinks by 20 feet per decade permanently" },
+  RETREAT: { key:'RETREAT', title:'Managed Retreat',    cost:150, desc:"Beach doesn't shrink for 3 decades" },
   NONE:    { key:'NONE',    title:'Do Nothing (Wild Card)', cost:0, desc:'Draw a Wild Card (random event).' },
 }
 const ORDER = ['NOURISH','DUNES','REEF','SEAWALL','RETREAT','NONE']
@@ -68,6 +68,18 @@ const WILDCARDS = [
   { key: 'KING_TIDE', name: 'King Tide Flooding', text: 'Extreme high tides flood streets and infrastructure.' },
   { key: 'EMISSIONS', name: 'Emissions Reduction',text: 'Global shift lowers long-term sea-level rise rate.' },
 ]
+
+/* =========================
+   Hover tooltips for moves
+   ========================= */
+const TOOLTIPS = {
+  NOURISH: "Pump and place sand with pipes/barges.\nOne-decade effect. Cost: $15M.\nOffsets the default loss this decade.",
+  DUNES: "Fencing + native plants trap wind-blown sand.\nBoosts storm resilience. One-decade effect. Cost: $5M.",
+  REEF: "Submerged artificial reef (reef balls/modules).\nReduces wave energy; lasts ~30 years. Cost: $100M.",
+  SEAWALL: "Hard armoring (concrete/riprap).\nProtects structures but can narrow the beach.\nPermanent –20 ft/decade.",
+  RETREAT: "Relocate assets inland.\nGives shoreline room to move.\nZero shrink for 3 decades. Cost: $150M.",
+  NONE: "Skip management this decade and draw a Wild Card.",
+}
 
 /* =========================
    Helpers
@@ -126,7 +138,7 @@ export default function App(){
   const [s, setS] = useState(initialState())
 
   const badge = s.gameOver
-    ? (s.victory ? <span className="badge green">Finished 🎉</span> : <span className="badge red">Game Over</span>)
+    ? (s.victory ? <span className="badge green">You saved the beach! 🏖️</span> : <span className="badge red">Game Over</span>)
     : <span className="badge blue">Round {s.round}/{ROUNDS}</span>
 
   // Current base rate priority:
@@ -170,7 +182,7 @@ export default function App(){
         break
       case 'SEAWALL':
         if (!state.seawallBuilt){
-          cost -= OPTIONS.SEAWALL.cost
+          cost -= OPTIONS.SEWALL?.cost || OPTIONS.SEAWALL.cost
           notes.push('Built Seawall: base beach loss becomes –20 ft/dec permanently.')
         } else {
           notes.push('Seawall already built.')
@@ -256,6 +268,9 @@ export default function App(){
     setS({ ...prev, past: s.past.slice(0, -1) })
   }
 
+  // Preload images on hover
+  function preload(srcs){ const i = new Image(); i.src = srcs[0]; }
+
   function nextTurn(choice){
     if (s.gameOver) return
 
@@ -298,7 +313,7 @@ export default function App(){
     const label = OPTIONS[choice]?.title || 'Action'
     lines.push(`Year ${working.year}–${working.year+10}: ${label}.`)
     notes.forEach(n => lines.push(`• ${n}`))
-    lines.push(`• Base rate: ${baseRate} ft/dec; final change this decade: ${rate} ft`)
+    lines.push(`• Rate of beach loss (base): ${baseRate} ft/dec; final change this decade: ${rate} ft`)
     lines.push(`• Budget: ${prettyMoney(working.budget)} → ${prettyMoney(newBudget)}`)
     lines.push(`• Beach width: ${working.width} ft → ${newWidth} ft`)
 
@@ -360,7 +375,7 @@ export default function App(){
   const EndScreen = () => (
     <div className="modal-backdrop strong">
       <div className="modal">
-        <h2 style={{marginTop:0}}>{s.victory ? 'You finished the plan! 🏖️' : 'Game over 😞'}</h2>
+        <h2 style={{marginTop:0}}>{s.victory ? 'You saved the beach! 🏖️' : 'Game over 😞'}</h2>
         <p>Final year: {s.year}. Width: {s.width} ft. Budget: {prettyMoney(s.budget)}.</p>
         <div style={{display:'flex', gap:8, flexWrap:'wrap', marginTop:8}}>
           <button className="primary" onClick={()=>resetGame()}>Play again</button>
@@ -417,7 +432,7 @@ export default function App(){
       {/* Title / badge / help */}
       <div className="masthead">
         <div className="mast-title">Save the Beach!</div>
-        <div className="mast-sub">Survive to {END_YEAR} without the beach or the budget hitting zero.</div>
+        <div className="mast-sub">Survive to year {END_YEAR} without the beach or the budget hitting zero.</div>
         {badge}
         <button className="secondary help-btn" onClick={()=>setShowIntro(true)}>Help</button>
       </div>
@@ -452,7 +467,7 @@ export default function App(){
               <Stat label="Year" value={`${s.year}`} />
               <Stat label="Beach Width" value={`${s.width} ft`} />
               <Stat label="Budget" value={prettyMoney(s.budget)} />
-              <Stat label="Base (this turn)" value={`${currentBaseRate(s)} ft/dec`} />
+              <Stat label="Rate of beach loss" value={`${currentBaseRate(s)} ft/dec`} />
               <Stat label="Reef left" value={`${s.reefRoundsLeft} rounds`} />
               <Stat label="Seawall?" value={s.seawallBuilt ? 'Yes' : 'No'} />
               <Stat label="Retreat left" value={`${s.retreatRoundsLeft} rounds`} />
@@ -480,6 +495,11 @@ export default function App(){
                   <div
                     key={key}
                     className={'option-card photo' + (isSel ? ' selected' : '')}
+                    title={TOOLTIPS[key]}
+                    aria-label={TOOLTIPS[key]}
+                    tabIndex={0}
+                    onMouseEnter={() => preload(MOVE_IMG[key])}
+                    onKeyDown={(e)=> (e.key === 'Enter' || e.key === ' ') && !s.gameOver && setSelected(key)}
                     onClick={()=>!s.gameOver && setSelected(key)}
                   >
                     <ImageFallback className="option-photo-img" srcs={MOVE_IMG[key]} alt={o.title} />
@@ -517,9 +537,10 @@ export default function App(){
             <div className="intro-title">How to play</div>
             <ul className="intro-list">
               <li>Pick one move each decade.</li>
+              <li>The beach shrinks by 10 feet per decade by default.</li>
               <li>Beach width changes by the decade’s rate.</li>
               <li>If Beach ≤ 0 ft or Budget ≤ $0M → you lose.</li>
-              <li>Make it to {END_YEAR} with both above zero → you win!</li>
+              <li>Make it to year {END_YEAR} with both above zero → you win!</li>
             </ul>
             <div className="intro-actions">
               <label className="intro-check">
