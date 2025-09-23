@@ -221,6 +221,4 @@ button:focus-visible { outline: 3px solid #0ea5e9; outline-offset: 2px; }
 /* If any old markup/class slips through */
 .option-grid { display:grid !important; grid-template-columns:1fr !important; }
 
-/* Hide any leftover "Build:" in the subtitle if present */
-.mast-sub strong { display: none !important; }
 
