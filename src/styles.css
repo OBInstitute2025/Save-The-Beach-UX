@@ -50,24 +50,56 @@ body {
 .stat .value { font-size: 18px; font-weight: 800; font-family: Outfit, Inter, ui-sans-serif; }
 
 /* Top-down coastal visual */
-.coast { margin-top:14px; height: clamp(240px, 50vh, 560px); border-radius:14px; overflow:hidden; display:flex; border:1px solid rgba(2,6,23,0.08); }
-.water { flex: 1; background: linear-gradient(90deg, var(--water), var(--water2)); position:relative; }
-.water::after { content:""; position:absolute; inset:0; background-image: radial-gradient(rgba(255,255,255,0.25) 1px, transparent 1px); background-size: 14px 14px; }
-.sand { width: 50%; transition: width .5s cubic-bezier(.2,.7,.2,1); background: linear-gradient(180deg, var(--sand), var(--sand2)); position:relative; box-shadow: inset 8px 0 12px rgba(0,0,0,0.1); }
-.sand::after { content:""; position:absolute; inset:0; background-image: radial-gradient(rgba(0,0,0,0.04) 1px, transparent 1px); background-size: 10px 10px; }
-.neighborhood { width: 32%; position:relative;
+.coast { margin-top:14px; height: clamp(260px, 56vh, 600px); border-radius:14px; overflow:hidden; display:flex; border:1px solid rgba(2,6,23,0.08); }
+.water {
+  flex: 1; position:relative;
+  background: linear-gradient(90deg, var(--water), var(--water2));
+  background-size: 180% 100%;
+  animation: waterShift 10s ease-in-out infinite alternate;
+}
+.water::after {
+  /* subtle sparkle texture moving opposite direction */
+  content:""; position:absolute; inset:0;
+  background-image: radial-gradient(rgba(255,255,255,0.22) 1px, transparent 1px);
+  background-size: 14px 14px;
+  animation: sparkleDrift 12s linear infinite;
+  opacity:.7;
+}
+.sand {
+  width: 50%; position:relative;
+  transition: width .5s cubic-bezier(.2,.7,.2,1);
+  background: linear-gradient(180deg, var(--sand), var(--sand2));
+  box-shadow: inset 8px 0 12px rgba(0,0,0,0.1);
+}
+.sand::after {
+  content:""; position:absolute; inset:0;
+  background-image: radial-gradient(rgba(0,0,0,0.04) 1px, transparent 1px);
+  background-size: 10px 10px;
+}
+/* “Shoreline swash” — subtle animated foam band that moves a few px */
+.shoreline {
+  position:absolute; left:-8px; top:0; bottom:0; width:12px;
+  background: linear-gradient(90deg, rgba(255,255,255,.85), rgba(255,255,255,.35), transparent);
+  filter: blur(0.6px);
+  animation: swash 3.6s ease-in-out infinite;
+  pointer-events:none;
+}
+.neighborhood {
+  width: 32%; position:relative;
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='110' viewBox='0 0 160 110'><rect width='160' height='110' fill='%23e5e7eb'/><g opacity='0.98'><rect x='10' y='54' width='44' height='30' fill='%23ffffff'/><polygon points='10,54 32,34 54,54' fill='%2394a3b8'/><rect x='62' y='58' width='32' height='26' fill='%23ffffff'/><polygon points='62,58 78,44 94,58' fill='%2394a3b8'/><rect x='102' y='48' width='30' height='36' fill='%23ffffff'/><polygon points='102,48 117,34 132,48' fill='%2394a3b8'/></g><rect x='0' y='100' width='160' height='6' fill='%23cbd5e1'/></svg>") repeat;
-  background-size: 180px 120px; box-shadow: inset 8px 0 12px rgba(0,0,0,0.08); }
+  background-size: 180px 120px; box-shadow: inset 8px 0 12px rgba(0,0,0,0.08);
+}
 
 /* Option cards (photo backgrounds via <img>) */
 .option-grid { display:grid; grid-template-columns:1fr; gap:10px; margin-top:8px; }
 @media (min-width: 700px) { .option-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 1100px){ .option-grid { grid-template-columns: repeat(3, 1fr); } }
 
+/* Slightly shorter than last version */
 .option-card.photo {
   position:relative; border:1px solid rgba(2,6,23,0.15); border-radius:12px;
-  padding:12px; display:flex; flex-direction:column; gap:6px; cursor:pointer;
-  color:#fff; min-height: 104px; overflow: hidden; background:#000;
+  padding:10px; display:flex; flex-direction:column; gap:6px; cursor:pointer;
+  color:#fff; min-height: 96px; overflow: hidden; background:#000;
   transition: transform .12s ease, box-shadow .12s ease;
 }
 .option-card.photo:hover { transform: translateY(-1px); border-color:#0284c7; box-shadow: 0 6px 18px rgba(2,6,23,0.16); }
@@ -93,6 +125,43 @@ button.secondary { background:#f8fafc; cursor:pointer; }
 button:disabled { opacity:.6; cursor:not-allowed; }
 button.primary:active { transform: translateY(1px); }
 button:focus-visible { outline: 3px solid #0ea5e9; outline-offset: 2px; }
+
+/* Pulsing CTA (Make your move) */
+.cta-pulse {
+  animation: ctaPulse 1.6s ease-in-out infinite;
+}
+.cta-pulse:hover { animation-play-state: paused; }
+@keyframes ctaPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 rgba(2,132,199,0); }
+  50% { transform: scale(1.03); box-shadow: 0 0 0 10px rgba(2,132,199,.12); }
+}
+
+/* Official-looking tooltips */
+.tip-wrap { position: relative; display:block; }
+.tip-wrap::after {
+  content: attr(data-tip);
+  position: absolute; left: 10px; right: 10px; bottom: 100%;
+  transform: translateY(-8px); opacity: 0; pointer-events: none;
+  background: #ffffff; color: #0f172a; border: 1px solid rgba(2,6,23,.12);
+  border-radius: 10px; padding: 10px 12px; font-size: 12px; line-height: 1.35;
+  box-shadow: 0 10px 30px rgba(2,6,23,.18);
+  white-space: pre-line;
+  transition: opacity .12s ease, transform .12s ease;
+  z-index: 50;
+}
+.tip-wrap::before {
+  content: ""; position: absolute; bottom: 100%; left: 32px;
+  transform: translateY(2px);
+  border-width: 6px; border-style: solid;
+  border-color: #ffffff transparent transparent transparent;
+  opacity: 0; transition: opacity .12s ease;
+  z-index: 51;
+}
+.tip-wrap:hover::after, .tip-wrap:focus-within::after { opacity: 1; transform: translateY(-12px); }
+.tip-wrap:hover::before, .tip-wrap:focus-within::before { opacity: 1; }
+@media (max-width: 700px) {
+  .tip-wrap::after { left: 6px; right: 6px; }
+}
 
 /* Log */
 .log { max-height: 350px; overflow:auto; display:grid; gap:10px; }
@@ -134,7 +203,20 @@ button:focus-visible { outline: 3px solid #0ea5e9; outline-offset: 2px; }
 .intro-check { font-size:13px; color:#334155; display:flex; align-items:center; gap:8px; }
 
 @keyframes pop { from { transform: scale(.96); opacity:.6 } to { transform: scale(1); opacity:1 } }
-@media (max-width: 700px) { .stats { grid-template-columns: repeat(2,1fr); } }
+
+/* Water animations */
+@keyframes waterShift {
+  0%   { background-position: 0% 0%; }
+  100% { background-position: 100% 0%; }
+}
+@keyframes sparkleDrift {
+  0%   { background-position: 0 0; }
+  100% { background-position: 140px 0; }
+}
+@keyframes swash {
+  0%,100% { transform: translateX(0); opacity:.65; }
+  50%     { transform: translateX(-6px); opacity:.95; }
+}
 
 /* Respect reduced-motion preferences */
 @media (prefers-reduced-motion: reduce) {
