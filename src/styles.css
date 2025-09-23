@@ -1,552 +1,222 @@
-import React, { useState } from 'react'
-import './styles.css'  // keep your existing filename
+/* Fonts + base look */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Outfit:wght@600;800;900&display=swap');
 
-/* =========================
-   Game constants
-   ========================= */
-const START_YEAR = 2020
-const END_YEAR = 2100
-const ROUNDS = 8               // 8 decades → 80 years
-const START_WIDTH = 50         // ft at start (used for visual scaling)
-
-const DIFFICULTIES = {
-  easy:   { label: 'Easy',   baseline: -8,  budget: 220 },
-  normal: { label: 'Normal', baseline: -10, budget: 200 },
-  hard:   { label: 'Hard',   baseline: -12, budget: 180 },
+:root {
+  --bg1: #e0f2fe;
+  --bg2: #ecfdf5;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #475569;
+  --accent: #0284c7;
+  --good: #16a34a;
+  --bad: #dc2626;
+  --sand: #f7e9c7;
+  --sand2: #f4dba4;
+  --water: #7dd3fc;
+  --water2: #38bdf8;
 }
 
-/* =========================
-   Actions (moves) & costs
-   ========================= */
-const OPTIONS = {
-  NOURISH: { key:'NOURISH', title:'Beach Nourishment',  cost:15,  desc:"Beach shrinks 5 feet less than normal this decade" },
-  DUNES:   { key:'DUNES',   title:'Dune Restoration',   cost:5,   desc:"Beach shrinks 2 feet less than normal this decade" },
-  REEF:    { key:'REEF',    title:'Artificial Reef',    cost:100, desc:"Beach shrinks by only 5 feet/decade for 30 years" },
-  SEAWALL: { key:'SEAWALL', title:'Seawall / Armoring', cost:150, desc:"Beach shrinks by 20 feet per decade permanently" },
-  RETREAT: { key:'RETREAT', title:'Managed Retreat',    cost:150, desc:"Beach doesn't shrink for 3 decades" },
-  NONE:    { key:'NONE',    title:'Do Nothing (Wild Card)', cost:0, desc:'Draw a Wild Card (random event).' },
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial;
+  color: var(--text);
+  background: linear-gradient(180deg, var(--bg1), var(--bg2));
+  min-height: 100vh;
 }
-const ORDER = ['NOURISH','DUNES','REEF','SEAWALL','RETREAT','NONE']
+.container { max-width: 1100px; margin: 0 auto; padding: 24px; }
 
-/* =========================
-   Local images (served from /public/images)
-   ========================= */
-function paths(name){
-  return [
-    `/images/${name}.webp`,  `images/${name}.webp`,
-    `/images/${name}.jpg`,   `images/${name}.jpg`,
-    `/images/${name}.jpeg`,  `images/${name}.jpeg`,
-    `/images/${name}.png`,   `images/${name}.png`,
-    `/images/${name}.JPG`,   `images/${name}.JPG`,
-    `/images/${name}.PNG`,   `images/${name}.PNG`,
-  ]
+/* Title */
+.masthead { display:grid; place-items:center; text-align:center; gap:6px; margin-bottom: 8px; }
+.mast-title { font-family: Outfit, Inter, ui-sans-serif; font-size: clamp(34px, 5.6vw, 60px); font-weight: 900; letter-spacing: .4px; }
+.mast-sub { color:#475569; font-size:14px; }
+.badge { margin-top: 4px; padding: 4px 10px; border-radius: 999px; color: #fff; font-size: 12px; }
+.badge.blue { background: #2563eb; } .badge.green { background: #16a34a; } .badge.red { background: #dc2626; }
+.help-btn { margin-top: 8px; }
+
+/* Cards & grid */
+.grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 1000px) { .grid { grid-template-columns: 2fr 1fr; } }
+
+.card { background: var(--card); border: 1px solid rgba(2,6,23,0.08); border-radius: 16px; box-shadow: 0 1px 2px rgba(2,6,23,0.04); }
+.card h3 { margin: 0; font-size: 18px; font-weight: 800; font-family: Outfit, Inter, ui-sans-serif; }
+.card .content { padding: 16px 18px 20px; }
+.card .header { padding: 14px 18px; border-bottom: 1px solid rgba(2,6,23,0.08); display:flex; align-items:center; gap:8px; }
+
+/* Stats */
+.stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+.stat { border: 1px solid rgba(2,6,23,0.08); border-radius: 14px; padding: 12px; background:#fff; }
+.stat .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.stat .value { font-size: 18px; font-weight: 800; font-family: Outfit, Inter, ui-sans-serif; }
+
+/* Top-down coastal visual */
+.coast { margin-top:14px; height: clamp(340px, 66vh, 720px); border-radius:14px; overflow:hidden; display:flex; border:1px solid rgba(2,6,23,0.08); }
+.water {
+  flex: 1; position:relative;
+  background: linear-gradient(90deg, var(--water), var(--water2));
+  background-size: 180% 100%;
+  animation: waterShift 10s ease-in-out infinite alternate;
 }
-const MOVE_IMG = {
-  NOURISH: paths('move-nourishment'),
-  DUNES:   paths('move-dunes'),
-  REEF:    paths('move-reef'),
-  SEAWALL: paths('move-seawall'),
-  RETREAT: paths('move-retreat'),
-  NONE:    paths('move-none'),
+.water::after {
+  content:""; position:absolute; inset:0;
+  background-image: radial-gradient(rgba(255,255,255,0.22) 1px, transparent 1px);
+  background-size: 14px 14px;
+  animation: sparkleDrift 12s linear infinite;
+  opacity:.7;
 }
-const WILDCARD_IMGS = {
-  STORM:     paths('wild-storm'),
-  RECALL:    paths('wild-recall'),
-  LA_NINA:   paths('wild-lanina'),
-  KING_TIDE: paths('wild-kingtide'),
-  EMISSIONS: paths('wild-emissions'),
+.sand {
+  width: 50%; position:relative;
+  transition: width .5s cubic-bezier(.2,.7,.2,1);
+  background: linear-gradient(180deg, var(--sand), var(--sand2));
+  box-shadow: inset 8px 0 12px rgba(0,0,0,0.1);
 }
-
-/* =========================
-   Wild cards
-   ========================= */
-const WILDCARDS = [
-  { key: 'STORM',     name: '100-Year Storm',     text: 'A powerful storm slams the coast.' },
-  { key: 'RECALL',    name: 'Recall',             text: 'Your policy decision is overturned.' },
-  { key: 'LA_NINA',   name: 'La Niña Year',       text: 'Unusually calm ocean conditions this year.' },
-  { key: 'KING_TIDE', name: 'King Tide Flooding', text: 'Extreme high tides flood streets and infrastructure.' },
-  { key: 'EMISSIONS', name: 'Emissions Reduction',text: 'Global shift lowers long-term sea-level rise rate.' },
-]
-
-/* =========================
-   Hover tooltips for moves
-   ========================= */
-const TOOLTIPS = {
-  NOURISH: "Beach Nourishment\nPump and place sand with pipes/barges.\nOne-decade effect. Cost: $15M.",
-  DUNES: "Dune Restoration\nFencing + native plants trap wind-blown sand.\nOne-decade effect. Cost: $5M.",
-  REEF: "Artificial Reef\nUnderwater blocks slow waves for ~30 years.\nCost: $100M.",
-  SEAWALL: "Seawall / Armoring\nHard barrier protects buildings but can narrow the beach.\nPermanent effect: –20 ft/decade.",
-  RETREAT: "Managed Retreat\nMove things back from the water.\nNo shrink for 3 decades. Cost: $150M.",
-  NONE: "Do Nothing\nSkip a project this decade and draw a Wild Card.",
+.sand::after {
+  content:""; position:absolute; inset:0;
+  background-image: radial-gradient(rgba(0,0,0,0.04) 1px, transparent 1px);
+  background-size: 10px 10px;
 }
-
-/* =========================
-   Helpers
-   ========================= */
-function prettyMoney(m){ return `$${m.toFixed(0)}M` }
-
-/** <img> that fails over through srcs[] (webp → jpg → png → …) */
-function ImageFallback({srcs, className, alt=""}) {
-  const [i, setI] = useState(0)
-  const src = srcs[Math.min(i, srcs.length-1)]
-  return (
-    <img
-      className={className}
-      src={src}
-      alt={alt}
-      onError={() => setI(v => (v < srcs.length-1 ? v+1 : v))}
-      loading="lazy"
-      decoding="async"
-    />
-  )
+.shoreline {
+  position:absolute; left:-12px; top:0; bottom:0; width:16px;
+  background: linear-gradient(90deg, rgba(255,255,255,.9), rgba(255,255,255,.45), transparent);
+  filter: blur(0.7px);
+  animation: swash 3.8s ease-in-out infinite;
+  pointer-events:none;
+}
+.wetband {
+  position:absolute; left:0; top:0; bottom:0; width:12px;
+  background: linear-gradient(90deg, rgba(0,0,0,.09), rgba(0,0,0,.04), transparent);
+  animation: wetRunup 3.8s ease-in-out infinite;
+  pointer-events:none;
+}
+.neighborhood {
+  width: 32%; position:relative;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='110' viewBox='0 0 160 110'><rect width='160' height='110' fill='%23e5e7eb'/><g opacity='0.98'><rect x='10' y='54' width='44' height='30' fill='%23ffffff'/><polygon points='10,54 32,34 54,54' fill='%2394a3b8'/><rect x='62' y='58' width='32' height='26' fill='%23ffffff'/><polygon points='62,58 78,44 94,58' fill='%2394a3b8'/><rect x='102' y='48' width='30' height='36' fill='%23ffffff'/><polygon points='102,48 117,34 132,48' fill='%2394a3b8'/></g><rect x='0' y='100' width='160' height='6' fill='%23cbd5e1'/></svg>") repeat;
+  background-size: 180px 120px; box-shadow: inset 8px 0 12px rgba(0,0,0,0.08);
 }
 
-export default function App(){
-  const [difficulty, setDifficulty] = useState('normal')
-  const [selected, setSelected] = useState('NOURISH')
-  const [wildModal, setWildModal] = useState(null)
-  const INTRO_KEY = 'stb_hide_intro_v2'
-  const [showIntro, setShowIntro] = useState(() => {
-    try { return localStorage.getItem(INTRO_KEY) === '1' ? false : true } catch { return true }
-  })
+/* Option cards (photo backgrounds via <img>) */
+.option-list { display:grid; grid-template-columns: 1fr !important; gap: 10px; margin-top: 8px; }
+.option-card.photo {
+  position:relative; border:1px solid rgba(2,6,23,0.15); border-radius:12px;
+  padding:10px; display:flex; flex-direction:column; gap:6px; cursor:pointer;
+  color:#fff; min-height: 96px; overflow: hidden; background:#000;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.option-card.photo:hover { transform: translateY(-1px); border-color:#0284c7; box-shadow: 0 6px 18px rgba(2,6,23,0.16); }
+.option-card.photo:active { transform: translateY(1px) scale(.997); }
+.option-card.photo.selected { outline:2px solid #0284c7; }
+.option-card.photo:focus { outline: none; }
+.option-card.photo:focus-visible { outline: 3px solid #22c55e; outline-offset: 2px; }
+.option-photo-img { position:absolute; inset:0; width:100%; height:100%; object-fit: cover; filter: saturate(1.05) contrast(1.05); }
+.option-overlay { position:absolute; inset:0; background: linear-gradient(to bottom, rgba(0,0,0,.22), rgba(0,0,0,.62)); }
+.option-top { position:relative; z-index:1; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.option-title { font-weight:900; font-family: Outfit, Inter, ui-sans-serif; text-shadow: 0 2px 6px rgba(0,0,0,.5); }
+.option-meta { position:relative; z-index:1; font-size:12px; text-shadow: 0 2px 6px rgba(0,0,0,.5); }
+.cost-pill { font-size:12px; padding:4px 8px; border-radius:999px; background: rgba(15,23,42,.7); color:#fff; border:1px solid rgba(255,255,255,.2); }
 
-  function initialState(diffKey = difficulty){
-    const diff = DIFFICULTIES[diffKey]
-    return {
-      year: START_YEAR,
-      round: 1,
-      width: START_WIDTH,
-      budget: diff.budget,
-      baseBaseline: diff.baseline, // –8/–10/–12; EMISSIONS can improve to –5
-      reefBuilt: false,
-      reefRoundsLeft: 0,
-      seawallBuilt: false,
-      retreatRoundsLeft: 0,
-      lastRate: null,
-      lastBaseRate: null,
-      log: [`Start ${START_YEAR}: Beach=${START_WIDTH} ft, Budget=${prettyMoney(diff.budget)}, Baseline ${diff.baseline} ft/dec.`],
-      gameOver: false,
-      victory: false,
-      history: [{year:START_YEAR, width:START_WIDTH, budget:diff.budget}],
-      past: [],
-    }
-  }
-  const [s, setS] = useState(initialState())
+/* Buttons */
+button, .btn { appearance:none; padding:10px 12px; border-radius:10px; border:1px solid rgba(2,6,23,0.15); font-size:14px; background:#fff; font-family: Inter, ui-sans-serif; }
+button.primary { background: var(--accent); border:none; color:#fff; cursor:pointer; transition: transform .05s ease; }
+button.secondary { background:#f8fafc; cursor:pointer; }
+button:disabled { opacity:.6; cursor:not-allowed; }
+button.primary:active { transform: translateY(1px); }
+button:focus-visible { outline: 3px solid #0ea5e9; outline-offset: 2px; }
 
-  const badge = s.gameOver
-    ? (s.victory ? <span className="badge green">You saved the beach! 🏖️</span> : <span className="badge red">Game Over</span>)
-    : <span className="badge blue">Round {s.round}/{ROUNDS}</span>
-
-  // Current base rate priority
-  function currentBaseRate(state){
-    if (state.retreatRoundsLeft > 0) return 0
-    if (state.seawallBuilt) return -20
-    let base = state.baseBaseline
-    if (state.reefRoundsLeft > 0) base = Math.max(base, -5)
-    return base
-  }
-
-  function computeThisDecade(choice, state){
-    const baseRate = currentBaseRate(state)
-    let rate = baseRate
-    let cost = 0
-    const notes = []
-
-    switch (choice){
-      case 'NOURISH':
-        cost -= OPTIONS.NOURISH.cost
-        rate = baseRate + 5
-        notes.push('Beach Nourishment: reduced beach loss by 5 ft this decade.')
-        break
-      case 'DUNES':
-        cost -= OPTIONS.DUNES.cost
-        rate = baseRate + 2
-        notes.push('Dune Restoration: reduced beach loss by 2 ft this decade.')
-        break
-      case 'REEF':
-        if (!state.reefBuilt){
-          cost -= OPTIONS.REEF.cost
-          notes.push('Built Artificial Reef: base beach loss becomes –5 ft/dec for 30 years.')
-          if (state.retreatRoundsLeft === 0 && !state.seawallBuilt){
-            rate = Math.max(baseRate, -5) // immediate effect this decade
-          }
-        } else {
-          notes.push(state.reefRoundsLeft > 0 ? 'Reef already active.' : 'Reef effect ended.')
-          rate = baseRate
-        }
-        break
-      case 'SEAWALL':
-        if (!state.seawallBuilt){
-          cost -= OPTIONS.SEAWALL.cost
-          notes.push('Built Seawall: base beach loss becomes –20 ft/dec permanently.')
-        } else {
-          notes.push('Seawall already built.')
-        }
-        rate = baseRate
-        break
-      case 'RETREAT':
-        cost -= OPTIONS.RETREAT.cost
-        notes.push('Managed Retreat: beach loss is 0 for this and the next 2 decades.')
-        rate = 0
-        break
-      default:
-        notes.push('Chose to do nothing → draw a Wild Card.')
-    }
-    return { baseRate, rate, cost, notes }
-  }
-
-  function drawWild(){ return WILDCARDS[Math.floor(Math.random() * WILDCARDS.length)] }
-
-  function applyWild(card, state, baseCalc){
-    let { rate, cost } = baseCalc
-    const notes = [`Wild Card: ${card.name}.`]
-    let why = ''
-    let futureNote = ''
-    let budgetChange = 0
-    let widthChangeFromWild = 0
-
-    switch(card.key){
-      case 'STORM':
-        widthChangeFromWild = -20
-        rate += -20
-        why = 'Strong waves and a high storm surge pull sand off the beach fast—like a big bite taken out at once.'
-        notes.push('100-Year Storm → additional –20 ft this decade.')
-        break
-      case 'RECALL':
-        if (state.lastRate !== null && state.lastBaseRate !== null){
-          const improvement = state.lastRate - state.lastBaseRate
-          widthChangeFromWild = -improvement
-          rate += -improvement
-          why = 'Leaders changed their decision, so last decade’s plan was undone and you lose that extra protection.'
-          notes.push('Recall → reversed last decade’s management benefit on width.')
-        } else {
-          why = 'There wasn’t a plan last decade, so there’s nothing to undo this time.'
-          notes.push('Recall had no effect (no prior management recorded).')
-        }
-        break
-      case 'LA_NINA':
-        widthChangeFromWild = -rate
-        rate = 0
-        why = 'La Niña changes wind and storm patterns over the Pacific. We assume gentler waves for now, so there is little or no erosion this decade.'
-        notes.push('La Niña → 0 ft change this decade.')
-        break
-      case 'KING_TIDE':
-        budgetChange = -30
-        cost += -30
-        why = '“King tides” are very high high tides caused by how the Sun, Moon, and Earth line up. They can flood streets and cause expensive cleanups.'
-        notes.push('King Tide → –$30M budget immediately.')
-        break
-      case 'EMISSIONS': {
-        const before = rate
-        rate = Math.max(rate, -5)
-        widthChangeFromWild = rate - before
-        why = 'Cutting greenhouse gas emissions slows long-term sea-level rise. From now on, we cap the baseline erosion at −5 ft per decade.'
-        futureNote = 'Baseline set to −5 ft/decade from now on.'
-        notes.push('Emissions cut → baseline improves to −5 ft/decade immediately and going forward.')
-        break
-      }
-    }
-
-    return { rate, cost, notes, why, futureNote, budgetChange, widthChangeFromWild }
-  }
-
-  function pushPast(snapshot){
-    const copy = JSON.parse(JSON.stringify(snapshot))
-    const past = (snapshot.past || []).slice(-20)
-    copy.past = [...past, { ...snapshot, past: [] }]
-    return copy
-  }
-
-  function undo(){
-    if (!s.past || s.past.length === 0) return
-    const prev = s.past[s.past.length - 1]
-    setS({ ...prev, past: s.past.slice(0, -1) })
-  }
-
-  function nextTurn(choice){
-    if (s.gameOver) return
-
-    let working = pushPast(s)
-    const baseCalc = computeThisDecade(choice, working)
-    let { baseRate, rate, cost, notes } = baseCalc
-
-    // persistent toggles & timers
-    let reefBuilt = working.reefBuilt
-    let reefRoundsLeft = working.reefRoundsLeft
-    let seawallBuilt = working.seawallBuilt
-    let retreatRoundsLeft = working.retreatRoundsLeft
-    let baseBaseline = working.baseBaseline
-
-    if (choice === 'REEF' && !reefBuilt){ reefBuilt = true; reefRoundsLeft = 3 }      // 30 years
-    if (choice === 'SEAWALL' && !seawallBuilt){ seawallBuilt = true }                 // permanent
-    if (choice === 'RETREAT'){ retreatRoundsLeft = 3 }                                // 3 decades
-
-    let drawn = null
-    let wildExtras = null
-    if (choice === 'NONE'){
-      drawn = drawWild()
-      const applied = applyWild(drawn, working, baseCalc)
-      rate = applied.rate
-      cost += applied.cost
-      notes = [...notes, ...applied.notes]
-      wildExtras = applied
-      if (drawn.key === 'EMISSIONS') baseBaseline = Math.max(baseBaseline, -5) // persist improvement
-    }
-
-    const budgetDelta = cost
-    const newBudget = working.budget + cost
-    const newWidth = Math.max(0, working.width + rate)
-
-    // timers tick AFTER applying this decade
-    if (reefRoundsLeft > 0) reefRoundsLeft -= 1
-    if (retreatRoundsLeft > 0) retreatRoundsLeft -= 1
-
-    const lines = []
-    const label = OPTIONS[choice]?.title || 'Action'
-    lines.push(`Year ${working.year}–${working.year+10}: ${label}.`)
-    notes.forEach(n => lines.push(`• ${n}`))
-    lines.push(`• Rate of beach loss (base): ${baseRate} ft/dec; final change this decade: ${rate} ft`)
-    lines.push(`• Budget: ${prettyMoney(working.budget)} → ${prettyMoney(newBudget)}`)
-    lines.push(`• Beach width: ${working.width} ft → ${newWidth} ft`)
-
-    const reachedEnd = working.round >= ROUNDS
-    const lost = (newWidth <= 0) || (newBudget <= 0)
-    const victory = !lost && reachedEnd
-    const gameOver = lost || reachedEnd
-
-    const nextState = {
-      ...working,
-      year: working.year + 10,
-      round: working.round + 1,
-      width: newWidth,
-      budget: newBudget,
-      baseBaseline,
-      reefBuilt,
-      reefRoundsLeft,
-      seawallBuilt,
-      retreatRoundsLeft,
-      lastRate: rate,
-      lastBaseRate: baseRate,
-      log: [lines.join('\n'), ...working.log],
-      gameOver,
-      victory,
-      history: [...working.history, {year:working.year+10, width:newWidth, budget:newBudget}],
-    }
-    setS(nextState)
-
-    if (drawn && wildExtras){
-      setWildModal({
-        key: drawn.key,
-        name: drawn.name,
-        text: drawn.text,
-        imgs: WILDCARD_IMGS[drawn.key],
-        widthChangeThisDecade: rate,
-        widthFromWild: wildExtras.widthChangeFromWild || 0,
-        budgetChangeThisDecade: budgetDelta,
-        budgetFromWild: wildExtras.budgetChange || 0,
-        why: wildExtras.why,
-        futureNote: wildExtras.futureNote,
-        newWidth: newWidth,
-        newBudget: newBudget,
-        decadeRange: `${working.year}–${working.year+10}`,
-      })
-    } else {
-      setWildModal(null)
-    }
-  }
-
-  function resetGame(newDiff = difficulty){
-    setS(initialState(newDiff))
-    setSelected('NOURISH')
-    setWildModal(null)
-  }
-
-  const EndScreen = () => (
-    <div className="modal-backdrop strong">
-      <div className="modal">
-        <h2 style={{marginTop:0}}>{s.victory ? 'You saved the beach! 🏖️' : 'Game over 😞'}</h2>
-        <p>Final year: {s.year}. Width: {s.width} ft. Budget: {prettyMoney(s.budget)}.</p>
-        <div style={{display:'flex', gap:8, flexWrap:'wrap', marginTop:8}}>
-          <button className="primary" onClick={()=>resetGame()}>Play again</button>
-        </div>
-      </div>
-    </div>
-  )
-
-  const WildModal = () => {
-    if (!wildModal) return null
-    const { name, text, imgs, why, futureNote, widthChangeThisDecade, widthFromWild, budgetChangeThisDecade, budgetFromWild } = wildModal
-    return (
-      <div className="modal-backdrop strong">
-        <div className="wild-frame pop">
-          <ImageFallback className="wild-photo-img" srcs={imgs} alt={name} />
-          <div className="wild-sheet">
-            <div className="wild-title">{name}</div>
-            <div className="wild-sub">{text}</div>
-
-            <div className="impact-grid">
-              <div className={'impact-tile ' + (widthChangeThisDecade >= 0 ? 'good' : 'bad')}>
-                <div className="impact-label">Beach</div>
-                <div className="impact-value">{widthChangeThisDecade >= 0 ? '+' : ''}{widthChangeThisDecade} ft</div>
-              </div>
-              <div className={'impact-tile ' + (budgetChangeThisDecade >= 0 ? 'good' : 'bad')}>
-                <div className="impact-label">Budget</div>
-                <div className="impact-value">{budgetChangeThisDecade >= 0 ? '+' : ''}{prettyMoney(budgetChangeThisDecade)}</div>
-              </div>
-            </div>
-
-            <div className="wild-mini">
-              Wild-card contribution → Beach {widthFromWild >= 0 ? '+' : ''}{widthFromWild} ft • Budget {budgetFromWild >= 0 ? '+' : ''}{prettyMoney(budgetFromWild)}
-            </div>
-
-            {(why || futureNote) && (
-              <details className="why-details">
-                <summary>Why this result?</summary>
-                {why && <div className="why-text">{why}</div>}
-                {futureNote && <div className="future-text">{futureNote}</div>}
-              </details>
-            )}
-
-            <div className="wild-actions">
-              <button className="primary" onClick={()=>setWildModal(null)}>Continue</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="container">
-      {/* Title / badge / help */}
-      <div className="masthead">
-        <div className="mast-title">Save the Beach!</div>
-        <div className="mast-sub">Survive to year {END_YEAR} without the beach or the budget hitting zero.</div>
-        {badge}
-        <button className="secondary help-btn" onClick={()=>setShowIntro(true)}>Help</button>
-      </div>
-
-      {/* Settings */}
-      <div className="card" style={{marginBottom:16}}>
-        <div className="header"><h3>Settings</h3></div>
-        <div className="content" style={{display:'flex', gap:12, flexWrap:'wrap', alignItems:'center'}}>
-          <div>
-            <div style={{fontSize:12, color:'#64748b'}}>Difficulty</div>
-            <div style={{display:'flex', gap:6}}>
-              {Object.entries(DIFFICULTIES).map(([key, cfg])=>(
-                <button key={key} className={key===difficulty ? 'primary' : 'btn'} onClick={()=>{ setDifficulty(key); resetGame(key) }}>
-                  {cfg.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div style={{marginLeft:'auto'}}>
-            <button className="secondary" onClick={undo} disabled={!s.past || s.past.length===0}>Undo decade</button>
-            <button className="secondary" onClick={()=>resetGame()}>Reset</button>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid">
-        {/* STATUS */}
-        <div className="card">
-          <div className="header"><h3>Current Status</h3></div>
-          <div className="content">
-            <div className="stats">
-              <Stat label="Year" value={`${s.year}`} />
-              <Stat label="Beach Width" value={`${s.width} ft`} />
-              <Stat label="Budget" value={prettyMoney(s.budget)} />
-              <Stat label="Rate of beach loss" value={`${currentBaseRate(s)} ft/dec`} />
-            </div>
-
-            {/* TOP-DOWN COASTAL VISUAL */}
-            <div className="coast">
-              <div className="water"></div>
-              <div className="sand" style={{width: Math.max(0, Math.min(100, (s.width/START_WIDTH)*50)) + '%'}}>
-                <div className="shoreline" aria-hidden="true"></div>
-                <div className="wetband" aria-hidden="true"></div>
-              </div>
-              <div className="neighborhood"></div>
-            </div>
-          </div>
-        </div>
-
-        {/* ACTIONS */}
-        <div className="card">
-          <div className="header"><h3>Choose Your Move</h3></div>
-          <div className="content">
-            <div id="moves" className="option-list" style={{display:'grid', gridTemplateColumns:'1fr'}}>
-              {ORDER.map(key => {
-                const o = OPTIONS[key]
-                const isSel = selected === key
-                return (
-                  <div key={key} className="tip-wrap" data-tip={TOOLTIPS[key]}>
-                    <div
-                      className={'option-card photo' + (isSel ? ' selected' : '')}
-                      tabIndex={0}
-                      onKeyDown={(e)=> (e.key === 'Enter' || e.key === ' ') && !s.gameOver && setSelected(key)}
-                      onClick={()=>!s.gameOver && setSelected(key)}
-                    >
-                      <ImageFallback className="option-photo-img" srcs={MOVE_IMG[key]} alt={o.title} />
-                      <div className="option-overlay" />
-                      <div className="option-top">
-                        <div className="option-title">{o.title}</div>
-                        <div className="cost-pill">{o.cost > 0 ? `–$${o.cost}M` : '—'}</div>
-                      </div>
-                      <div className="option-meta">{o.desc}</div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-            <div className="actions">
-              <button className="primary cta-pulse" disabled={s.gameOver} onClick={()=>nextTurn(selected)}>Make your move</button>
-              <button className="secondary" onClick={()=>resetGame()}>Reset</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* LOG */}
-      <div className="card" style={{marginTop:16}}>
-        <div className="header"><h3>Decade Log</h3></div>
-        <div className="content"><div className="log">{s.log.map((e,i)=>(<div key={i} className="log-entry">{e}</div>))}</div></div>
-      </div>
-
-      {s.gameOver && <EndScreen/>}
-      {wildModal && <WildModal/>}
-
-      {/* Intro (skippable) */}
-      {showIntro && (
-        <div className="modal-backdrop strong">
-          <div className="intro-modal pop">
-            <div className="intro-title">How to play</div>
-            <ul className="intro-list">
-              <li>Pick one move each decade.</li>
-              <li>The beach shrinks by 10 feet per decade, unless you make a move!</li>
-              <li>If Beach ≤ 0 ft or Budget ≤ $0M → you lose.</li>
-              <li>Make it to year {END_YEAR} with both above zero → you win!</li>
-            </ul>
-            <div className="intro-actions">
-              <label className="intro-check">
-                <input type="checkbox" onChange={(e)=> localStorage.setItem(INTRO_KEY, e.target.checked ? '1' : '0')} />
-                Don’t show again
-              </label>
-              <button className="primary" onClick={()=> setShowIntro(false)}>Start</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
+/* Pulsing CTA */
+.cta-pulse { animation: ctaPulse 1.6s ease-in-out infinite; }
+.cta-pulse:hover { animation-play-state: paused; }
+@keyframes ctaPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 rgba(2,132,199,0); }
+  50% { transform: scale(1.03); box-shadow: 0 0 0 10px rgba(2,132,199,.12); }
 }
 
-/* Small stat block */
-function Stat({label, value}){
-  return (
-    <div className="stat">
-      <div className="label">{label}</div>
-      <div className="value">{value}</div>
-    </div>
-  )
+/* Official-looking tooltips */
+.tip-wrap { position: relative; display:block; }
+.tip-wrap::after {
+  content: attr(data-tip);
+  position: absolute; left: 10px; right: 10px; bottom: 100%;
+  transform: translateY(-8px); opacity: 0; pointer-events: none;
+  background: #ffffff; color: #0f172a; border: 1px solid rgba(2,6,23,.12);
+  border-radius: 10px; padding: 10px 12px; font-size: 12px; line-height: 1.35;
+  box-shadow: 0 10px 30px rgba(2,6,23,.18);
+  white-space: pre-line;
+  transition: opacity .12s ease, transform .12s ease;
+  z-index: 50;
 }
+.tip-wrap::before {
+  content: ""; position: absolute; bottom: 100%; left: 32px;
+  transform: translateY(2px);
+  border-width: 6px; border-style: solid;
+  border-color: #ffffff transparent transparent transparent;
+  opacity: 0; transition: opacity .12s ease;
+  z-index: 51;
+}
+.tip-wrap:hover::after, .tip-wrap:focus-within::after { opacity: 1; transform: translateY(-12px); }
+.tip-wrap:hover::before, .tip-wrap:focus-within::before { opacity: 1; }
+
+/* Log */
+.log { max-height: 350px; overflow:auto; display:grid; gap:10px; }
+.log-entry { border:1px dashed rgba(2,6,23,0.15); border-radius:12px; background:#fff; padding:10px 12px; font-size:14px; white-space:pre-wrap; }
+
+/* Backdrop + modals */
+.modal-backdrop { position:fixed; inset:0; background:rgba(2,6,23,.82); backdrop-filter: blur(3px); display:flex; align-items:center; justify-content:center; padding:16px; z-index: 9999; }
+.modal-backdrop.strong { background: rgba(2,6,23,.86); backdrop-filter: blur(4px); }
+.modal { background:#fff; border:1px solid rgba(2,6,23,.1); border-radius:16px; padding:18px; width:min(560px, 92vw); box-shadow:0 10px 30px rgba(2,6,23,.25); }
+
+/* Wild-card modal */
+.wild-frame { width:min(980px,96vw); border-radius:16px; overflow:hidden; background:#000; box-shadow:0 16px 40px rgba(2,6,23,.35); }
+.wild-frame.pop { animation: pop .18s ease-out; }
+.wild-photo-img { width: 100%; height: min(48vh,420px); object-fit: cover; display:block; }
+.wild-sheet { margin:14px; background:rgba(255,255,255,.97); border:1px solid rgba(2,6,23,.08); border-radius:14px; padding:14px 16px 16px; }
+.wild-title { font-size:24px; font-weight:900; font-family: Outfit, Inter, ui-sans-serif; }
+.wild-sub { color:#334155; margin:4px 0 10px; }
+
+.impact-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:10px; margin:4px 0 8px; }
+.impact-tile { border-radius:12px; padding:10px; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.25); }
+.impact-tile.good { background: linear-gradient(180deg, #22c55e, #15803d); }
+.impact-tile.bad  { background: linear-gradient(180deg, #ef4444, #b91c1c); }
+.impact-label { font-size:12px; text-transform:uppercase; letter-spacing:.06em; opacity:.95; }
+.impact-value { font-size:22px; font-weight:900; line-height:1.1; }
+
+.wild-mini { color:#475569; font-size:12px; margin-top:4px; }
+.why-details { margin-top:8px; }
+.why-details summary { cursor:pointer; color:#0f172a; font-weight:700; }
+.why-text { color:#0f172a; margin-top:6px; }
+.future-text { color:#0f172a; opacity:.85; margin-top:4px; }
+.wild-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
+
+/* Intro modal */
+.intro-modal { background:#fff; width:min(560px,92vw); border-radius:16px; padding:16px; border:1px solid rgba(2,6,23,.1); box-shadow:0 10px 30px rgba(2,6,23,.25); }
+.intro-modal.pop { animation: pop .18s ease-out; }
+.intro-title { font-family: Outfit, Inter, ui-sans-serif; font-weight:900; font-size:22px; margin-bottom:6px; }
+.intro-list { margin:0 0 10px 18px; padding:0; font-size:14px; }
+.intro-actions { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.intro-check { font-size:13px; color:#334155; display:flex; align-items:center; gap:8px; }
+
+@keyframes pop { from { transform: scale(.96); opacity:.6 } to { transform: scale(1); opacity:1 } }
+@keyframes waterShift { 0% { background-position: 0% 0%; } 100% { background-position: 100% 0%; } }
+@keyframes sparkleDrift { 0% { background-position: 0 0; } 100% { background-position: 140px 0; } }
+@keyframes swash { 0%,100% { transform: translateX(0); opacity:.7; } 50% { transform: translateX(-12px); opacity:1; } }
+@keyframes wetRunup { 0%,100% { width: 12px; } 50% { width: 22px; } }
+
+/* Respect reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+/* Safe-area padding */
+.container {
+  padding-left: max(24px, env(safe-area-inset-left));
+  padding-right: max(24px, env(safe-area-inset-right));
+}
+
+/* ===== Force moves to a single column ===== */
+#moves { 
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  grid-auto-flow: row !important;
+}
+#moves .option-card { width: 100% !important; }
+
+/* If any old markup/class slips through */
+.option-grid { display:grid !important; grid-template-columns:1fr !important; }
