@@ -476,13 +476,13 @@ export default function App(){
         <div className="card">
           <div className="header"><h3>Choose Your Move</h3></div>
           <div className="content">
-            {/* Force stacked layout even if old CSS lingers */}
-            <div className="option-list" style={{display:'grid', gridTemplateColumns:'1fr'}}>
+            {/* Force stacked layout and add an id for hotfix CSS */}
+            <div id="moves" className="option-list" style={{display:'grid', gridTemplateColumns:'1fr'}}>
               {ORDER.map(key => {
                 const o = OPTIONS[key]
                 const isSel = selected === key
                 return (
-                  <div key={key} className="tip-wrap" data-tip={TOOLTIPS[key]} onMouseEnter={() => { const i=new Image(); i.src=MOVE_IMG[key][0] }}>
+                  <div key={key} className="tip-wrap" data-tip={TOOLTIPS[key]}>
                     <div
                       className={'option-card photo' + (isSel ? ' selected' : '')}
                       tabIndex={0}
