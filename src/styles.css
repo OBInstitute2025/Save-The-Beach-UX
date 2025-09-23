@@ -61,17 +61,29 @@ body {
 
 /* Option cards (photo backgrounds via <img>) */
 .option-grid { display:grid; grid-template-columns:1fr; gap:10px; margin-top:8px; }
-.option-card.photo { position:relative; border:1px solid rgba(2,6,23,0.15); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:6px; cursor:pointer; color:#fff; min-height: 120px; overflow: hidden; background:#000; }
-.option-card.photo:hover { transform: translateY(-1px); transition: transform .12s ease; border-color:#0284c7; }
+@media (min-width: 700px) { .option-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1100px){ .option-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.option-card.photo {
+  position:relative; border:1px solid rgba(2,6,23,0.15); border-radius:12px;
+  padding:12px; display:flex; flex-direction:column; gap:6px; cursor:pointer;
+  color:#fff; min-height: 104px; overflow: hidden; background:#000;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.option-card.photo:hover { transform: translateY(-1px); border-color:#0284c7; box-shadow: 0 6px 18px rgba(2,6,23,0.16); }
+.option-card.photo:active { transform: translateY(1px) scale(.997); }
 .option-card.photo.selected { outline:2px solid #0284c7; }
+.option-card.photo:focus { outline: none; }
+.option-card.photo:focus-visible { outline: 3px solid #22c55e; outline-offset: 2px; }
+
 .option-photo-img {
   position:absolute; inset:0; width:100%; height:100%;
   object-fit: cover; filter: saturate(1.05) contrast(1.05);
 }
-.option-overlay { position:absolute; inset:0; background: linear-gradient(to bottom, rgba(0,0,0,.18), rgba(0,0,0,.56)); }
+.option-overlay { position:absolute; inset:0; background: linear-gradient(to bottom, rgba(0,0,0,.22), rgba(0,0,0,.62)); }
 .option-top { position:relative; z-index:1; display:flex; justify-content:space-between; align-items:center; gap:8px; }
-.option-title { font-weight:900; font-family: Outfit, Inter, ui-sans-serif; text-shadow: 0 1px 2px rgba(0,0,0,.45); }
-.option-meta { position:relative; z-index:1; font-size:12px; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+.option-title { font-weight:900; font-family: Outfit, Inter, ui-sans-serif; text-shadow: 0 2px 6px rgba(0,0,0,.5); }
+.option-meta { position:relative; z-index:1; font-size:12px; text-shadow: 0 2px 6px rgba(0,0,0,.5); }
 .cost-pill { font-size:12px; padding:4px 8px; border-radius:999px; background: rgba(15,23,42,.7); color:#fff; border:1px solid rgba(255,255,255,.2); }
 
 /* Buttons */
@@ -80,6 +92,7 @@ button.primary { background: var(--accent); border:none; color:#fff; cursor:poin
 button.secondary { background:#f8fafc; cursor:pointer; }
 button:disabled { opacity:.6; cursor:not-allowed; }
 button.primary:active { transform: translateY(1px); }
+button:focus-visible { outline: 3px solid #0ea5e9; outline-offset: 2px; }
 
 /* Log */
 .log { max-height: 350px; overflow:auto; display:grid; gap:10px; }
@@ -94,7 +107,7 @@ button.primary:active { transform: translateY(1px); }
 .wild-frame { width:min(980px,96vw); border-radius:16px; overflow:hidden; background:#000; box-shadow:0 16px 40px rgba(2,6,23,.35); }
 .wild-frame.pop { animation: pop .18s ease-out; }
 .wild-photo-img { width: 100%; height: min(48vh,420px); object-fit: cover; display:block; }
-.wild-sheet { margin:14px; background:rgba(255,255,255,.95); border:1px solid rgba(2,6,23,.08); border-radius:14px; padding:14px 16px 16px; }
+.wild-sheet { margin:14px; background:rgba(255,255,255,.97); border:1px solid rgba(2,6,23,.08); border-radius:14px; padding:14px 16px 16px; }
 .wild-title { font-size:24px; font-weight:900; font-family: Outfit, Inter, ui-sans-serif; }
 .wild-sub { color:#334155; margin:4px 0 10px; }
 
@@ -122,3 +135,14 @@ button.primary:active { transform: translateY(1px); }
 
 @keyframes pop { from { transform: scale(.96); opacity:.6 } to { transform: scale(1); opacity:1 } }
 @media (max-width: 700px) { .stats { grid-template-columns: repeat(2,1fr); } }
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+/* Safe-area padding (notched phones) */
+.container {
+  padding-left: max(24px, env(safe-area-inset-left));
+  padding-right: max(24px, env(safe-area-inset-right));
+}
