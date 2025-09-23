@@ -210,7 +210,7 @@ export default function App(){
       case 'STORM':
         widthChangeFromWild = -20
         rate += -20
-        why = 'Strong waves and a high storm surge pull sand off the beach quickly—like a big bite taken out at once.'
+        why = 'Strong waves and a high storm surge pull sand off the beach fast—like a big bite taken out at once.'
         notes.push('100-Year Storm → additional –20 ft this decade.')
         break
       case 'RECALL':
@@ -218,7 +218,7 @@ export default function App(){
           const improvement = state.lastRate - state.lastBaseRate // e.g. (-5) - (-10) = +5
           widthChangeFromWild = -improvement
           rate += -improvement
-          why = 'Leaders changed their minds, so last decade’s plan was undone and you lose that extra protection.'
+          why = 'Leaders changed their decision, so last decade’s plan was undone and you lose that extra protection.'
           notes.push('Recall → reversed last decade’s management benefit on width.')
         } else {
           why = 'There wasn’t a plan last decade, so there’s nothing to undo this time.'
@@ -228,20 +228,20 @@ export default function App(){
       case 'LA_NINA':
         widthChangeFromWild = -rate // cancels whatever the rate was
         rate = 0
-        why = 'La Niña shifts winds and storms over the Pacific. Here we assume gentler waves for a while, so little or no erosion this decade.'
+        why = 'La Niña changes wind and storm patterns over the Pacific. We assume gentler waves for now, so there is little or no erosion this decade.'
         notes.push('La Niña → 0 ft change this decade.')
         break
       case 'KING_TIDE':
         budgetChange = -30
         cost += -30
-        why = '“King tides” are very high high tides caused by how the Sun, Moon, and Earth line up. They can flood streets and cause costly cleanups.'
+        why = '“King tides” are very high high tides caused by how the Sun, Moon, and Earth line up. They can flood streets and cause expensive cleanups.'
         notes.push('King Tide → –$30M budget immediately.')
         break
       case 'EMISSIONS': {
         const before = rate
         rate = Math.max(rate, -5)      // immediate improvement this decade
         widthChangeFromWild = rate - before
-        why = 'Cutting greenhouse gas emissions slows long-term sea-level rise. We cap the baseline erosion at −5 ft/decade from now on.'
+        why = 'Cutting greenhouse gas emissions slows long-term sea-level rise. From now on, we cap the baseline erosion at −5 ft per decade.'
         futureNote = 'Baseline set to −5 ft/decade from now on.'
         notes.push('Emissions cut → baseline improves to −5 ft/decade immediately and going forward.')
         break
@@ -263,9 +263,6 @@ export default function App(){
     const prev = s.past[s.past.length - 1]
     setS({ ...prev, past: s.past.slice(0, -1) })
   }
-
-  // Preload images on hover
-  function preload(srcs){ const i = new Image(); i.src = srcs[0]; }
 
   function nextTurn(choice){
     if (s.gameOver) return
@@ -480,7 +477,7 @@ export default function App(){
           <div className="header"><h3>Choose Your Move</h3></div>
           <div className="content">
             {/* Force stacked layout even if old CSS lingers */}
-            <div className="option-grid" style={{display:'grid', gridTemplateColumns:'1fr'}}>
+            <div className="option-list" style={{display:'grid', gridTemplateColumns:'1fr'}}>
               {ORDER.map(key => {
                 const o = OPTIONS[key]
                 const isSel = selected === key
