@@ -30,23 +30,32 @@ const ORDER = ['NOURISH','DUNES','REEF','SEAWALL','RETREAT','NONE']
 
 /* =========================
    Local images (served from /public/images)
-   Provide webp → jpg → png fallbacks automatically
+   Use absolute AND relative paths so it works on any host.
    ========================= */
-const MOVE_IMG = {
-  NOURISH: ['/images/move-nourishment.webp','/images/move-nourishment.jpg','/images/move-nourishment.png'],
-  DUNES:   ['/images/move-dunes.webp','/images/move-dunes.jpg','/images/move-dunes.png'],
-  REEF:    ['/images/move-reef.webp','/images/move-reef.jpg','/images/move-reef.png'],
-  SEAWALL: ['/images/move-seawall.webp','/images/move-seawall.jpg','/images/move-seawall.png'],
-  RETREAT: ['/images/move-retreat.webp','/images/move-retreat.jpg','/images/move-retreat.png'],
-  NONE:    ['/images/move-none.webp','/images/move-none.jpg','/images/move-none.png'],
+function paths(name){
+  return [
+    `/images/${name}.webp`,  `images/${name}.webp`,
+    `/images/${name}.jpg`,   `images/${name}.jpg`,
+    `/images/${name}.jpeg`,  `images/${name}.jpeg`,
+    `/images/${name}.png`,   `images/${name}.png`,
+    `/images/${name}.JPG`,   `images/${name}.JPG`,
+    `/images/${name}.PNG`,   `images/${name}.PNG`,
+  ]
 }
-
+const MOVE_IMG = {
+  NOURISH: paths('move-nourishment'),
+  DUNES:   paths('move-dunes'),
+  REEF:    paths('move-reef'),
+  SEAWALL: paths('move-seawall'),
+  RETREAT: paths('move-retreat'),
+  NONE:    paths('move-none'),
+}
 const WILDCARD_IMGS = {
-  STORM:     ['/images/wild-storm.webp','/images/wild-storm.jpg','/images/wild-storm.png'],
-  RECALL:    ['/images/wild-recall.webp','/images/wild-recall.jpg','/images/wild-recall.png'],
-  LA_NINA:   ['/images/wild-lanina.webp','/images/wild-lanina.jpg','/images/wild-lanina.png'],  // note: "lanina"
-  KING_TIDE: ['/images/wild-kingtide.webp','/images/wild-kingtide.jpg','/images/wild-kingtide.png'],
-  EMISSIONS: ['/images/wild-emissions.webp','/images/wild-emissions.jpg','/images/wild-emissions.png'],
+  STORM:     paths('wild-storm'),
+  RECALL:    paths('wild-recall'),
+  LA_NINA:   paths('wild-lanina'),   // note: no tilde in filename
+  KING_TIDE: paths('wild-kingtide'),
+  EMISSIONS: paths('wild-emissions'),
 }
 
 /* =========================
@@ -65,7 +74,7 @@ const WILDCARDS = [
    ========================= */
 function prettyMoney(m){ return `$${m.toFixed(0)}M` }
 
-/** Generic <img> that fails over through srcs[] (webp → jpg → png) */
+/** Generic <img> that fails over through srcs[] (webp → jpg → png → …) */
 function ImageFallback({srcs, className, alt=""}) {
   const [i, setI] = useState(0)
   const src = srcs[Math.min(i, srcs.length-1)]
@@ -161,8 +170,7 @@ export default function App(){
         break
       case 'SEAWALL':
         if (!state.seawallBuilt){
-          cost -= OPTIONS.SEWALL?.cost || OPTIONS.SEWALL?.cost ?? -OPTIONS.SEAWALL.cost // guard older typos
-          cost = -OPTIONS.SEAWALL.cost
+          cost -= OPTIONS.SEAWALL.cost
           notes.push('Built Seawall: base beach loss becomes –20 ft/dec permanently.')
         } else {
           notes.push('Seawall already built.')
@@ -221,16 +229,15 @@ export default function App(){
         why = 'Emergency response and repairs during extreme high tide.'
         notes.push('King Tide → –$30M budget immediately.')
         break
-      case 'EMISSIONS':
-        {
-          const before = rate
-          rate = Math.max(rate, -5)      // immediate improvement this decade
-          widthChangeFromWild = rate - before
-          why = 'Rapid decarbonization slows sea-level rise starting now.'
-          futureNote = 'Baseline set to –5 ft/decade from now on.'
-          notes.push('Emissions cut → baseline improves to –5 ft/decade immediately and going forward.')
-        }
+      case 'EMISSIONS': {
+        const before = rate
+        rate = Math.max(rate, -5)      // immediate improvement this decade
+        widthChangeFromWild = rate - before
+        why = 'Rapid decarbonization slows sea-level rise starting now.'
+        futureNote = 'Baseline set to –5 ft/decade from now on.'
+        notes.push('Emissions cut → baseline improves to –5 ft/decade immediately and going forward.')
         break
+      }
     }
 
     return { rate, cost, notes, why, futureNote, budgetChange, widthChangeFromWild }
@@ -455,7 +462,7 @@ export default function App(){
             {/* TOP-DOWN COASTAL VISUAL */}
             <div className="coast">
               <div className="water"></div>
-              <div className="sand" style={{width: sandPct + '%'}}></div>
+              <div className="sand" style={{width: Math.max(0, Math.min(100, (s.width/START_WIDTH)*50)) + '%'}}></div>
               <div className="neighborhood"></div>
             </div>
           </div>
