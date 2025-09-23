@@ -1,13 +1,13 @@
-import React, { useState } from 'react'
-import './styles.css'  // keep your existing filename
+import React, { useState, useEffect } from 'react'
+import './styles.css'
 
 /* =========================
    Game constants
    ========================= */
 const START_YEAR = 2020
 const END_YEAR = 2100
-const ROUNDS = 8               // 8 decades → 80 years
-const START_WIDTH = 50         // ft at start (used for visual scaling)
+const ROUNDS = 8
+const START_WIDTH = 50
 
 const DIFFICULTIES = {
   easy:   { label: 'Easy',   baseline: -8,  budget: 220 },
@@ -85,7 +85,7 @@ const TOOLTIPS = {
    ========================= */
 function prettyMoney(m){ return `$${m.toFixed(0)}M` }
 
-/** <img> that fails over through srcs[] (webp → jpg → png → …) */
+/** <img> with fallback chain */
 function ImageFallback({srcs, className, alt=""}) {
   const [i, setI] = useState(0)
   const src = srcs[Math.min(i, srcs.length-1)]
@@ -109,6 +109,18 @@ export default function App(){
   const [showIntro, setShowIntro] = useState(() => {
     try { return localStorage.getItem(INTRO_KEY) === '1' ? false : true } catch { return true }
   })
+
+  /* --- HARD OVERRIDE: ensure single-column moves no matter other CSS --- */
+  useEffect(() => {
+    const styleEl = document.createElement('style')
+    styleEl.setAttribute('data-stb-fix', 'moves-single-col')
+    styleEl.innerHTML = `
+      #moves { display:grid !important; grid-template-columns: 1fr !important; grid-auto-flow: row !important; }
+      #moves .tip-wrap, #moves .option-card { grid-column: 1 / -1 !important; width: 100% !important; }
+    `
+    document.head.appendChild(styleEl)
+    return () => document.head.contains(styleEl) && document.head.removeChild(styleEl)
+  }, [])
 
   function initialState(diffKey = difficulty){
     const diff = DIFFICULTIES[diffKey]
@@ -137,7 +149,6 @@ export default function App(){
     ? (s.victory ? <span className="badge green">You saved the beach! 🏖️</span> : <span className="badge red">Game Over</span>)
     : <span className="badge blue">Round {s.round}/{ROUNDS}</span>
 
-  // Current base rate priority
   function currentBaseRate(state){
     if (state.retreatRoundsLeft > 0) return 0
     if (state.seawallBuilt) return -20
@@ -168,7 +179,7 @@ export default function App(){
           cost -= OPTIONS.REEF.cost
           notes.push('Built Artificial Reef: base beach loss becomes –5 ft/dec for 30 years.')
           if (state.retreatRoundsLeft === 0 && !state.seawallBuilt){
-            rate = Math.max(baseRate, -5) // immediate effect this decade
+            rate = Math.max(baseRate, -5)
           }
         } else {
           notes.push(state.reefRoundsLeft > 0 ? 'Reef already active.' : 'Reef effect ended.')
@@ -246,7 +257,6 @@ export default function App(){
         break
       }
     }
-
     return { rate, cost, notes, why, futureNote, budgetChange, widthChangeFromWild }
   }
 
@@ -270,16 +280,15 @@ export default function App(){
     const baseCalc = computeThisDecade(choice, working)
     let { baseRate, rate, cost, notes } = baseCalc
 
-    // persistent toggles & timers
     let reefBuilt = working.reefBuilt
     let reefRoundsLeft = working.reefRoundsLeft
     let seawallBuilt = working.seawallBuilt
     let retreatRoundsLeft = working.retreatRoundsLeft
     let baseBaseline = working.baseBaseline
 
-    if (choice === 'REEF' && !reefBuilt){ reefBuilt = true; reefRoundsLeft = 3 }      // 30 years
-    if (choice === 'SEAWALL' && !seawallBuilt){ seawallBuilt = true }                 // permanent
-    if (choice === 'RETREAT'){ retreatRoundsLeft = 3 }                                // 3 decades
+    if (choice === 'REEF' && !reefBuilt){ reefBuilt = true; reefRoundsLeft = 3 }
+    if (choice === 'SEAWALL' && !seawallBuilt){ seawallBuilt = true }
+    if (choice === 'RETREAT'){ retreatRoundsLeft = 3 }
 
     let drawn = null
     let wildExtras = null
@@ -290,14 +299,13 @@ export default function App(){
       cost += applied.cost
       notes = [...notes, ...applied.notes]
       wildExtras = applied
-      if (drawn.key === 'EMISSIONS') baseBaseline = Math.max(baseBaseline, -5) // persist improvement
+      if (drawn.key === 'EMISSIONS') baseBaseline = Math.max(baseBaseline, -5)
     }
 
     const budgetDelta = cost
     const newBudget = working.budget + cost
     const newWidth = Math.max(0, working.width + rate)
 
-    // timers tick AFTER applying this decade
     if (reefRoundsLeft > 0) reefRoundsLeft -= 1
     if (retreatRoundsLeft > 0) retreatRoundsLeft -= 1
 
@@ -475,12 +483,17 @@ export default function App(){
         <div className="card">
           <div className="header"><h3>Choose Your Move</h3></div>
           <div className="content">
-            <div id="moves" className="option-list" style={{display:'grid', gridTemplateColumns:'1fr'}}>
+            <div id="moves" className="option-list">
               {ORDER.map(key => {
                 const o = OPTIONS[key]
                 const isSel = selected === key
                 return (
-                  <div key={key} className="tip-wrap" data-tip={TOOLTIPS[key]}>
+                  <div
+                    key={key}
+                    className="tip-wrap"
+                    data-tip={TOOLTIPS[key]}
+                    style={{ gridColumn: '1 / -1' }}        // ⬅️ make each item span full width
+                  >
                     <div
                       className={'option-card photo' + (isSel ? ' selected' : '')}
                       tabIndex={0}
