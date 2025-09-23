@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import './styles.css'
 
 /* =========================
@@ -110,16 +110,28 @@ export default function App(){
     try { return localStorage.getItem(INTRO_KEY) === '1' ? false : true } catch { return true }
   })
 
-  /* --- HARD OVERRIDE: ensure single-column moves no matter other CSS --- */
+  /* FORCE SINGLE-COLUMN (inline styles + observer) */
+  const movesRef = useRef(null)
   useEffect(() => {
-    const styleEl = document.createElement('style')
-    styleEl.setAttribute('data-stb-fix', 'moves-single-col')
-    styleEl.innerHTML = `
-      #moves { display:grid !important; grid-template-columns: 1fr !important; grid-auto-flow: row !important; }
-      #moves .tip-wrap, #moves .option-card { grid-column: 1 / -1 !important; width: 100% !important; }
-    `
-    document.head.appendChild(styleEl)
-    return () => document.head.contains(styleEl) && document.head.removeChild(styleEl)
+    const el = movesRef.current
+    if (!el) return
+
+    const force = () => {
+      el.style.display = 'flex'
+      el.style.flexDirection = 'column'
+      el.style.alignItems = 'stretch'
+      el.style.gap = '10px'
+      for (const child of el.children) {
+        child.style.width = '100%'
+        child.style.gridColumn = '1 / -1'
+      }
+    }
+    force()
+
+    // In case some other script flips classes/layout later
+    const obs = new MutationObserver(force)
+    obs.observe(el, { attributes: true, childList: true, subtree: true })
+    return () => obs.disconnect()
   }, [])
 
   function initialState(diffKey = difficulty){
@@ -257,6 +269,7 @@ export default function App(){
         break
       }
     }
+
     return { rate, cost, notes, why, futureNote, budgetChange, widthChangeFromWild }
   }
 
@@ -483,7 +496,7 @@ export default function App(){
         <div className="card">
           <div className="header"><h3>Choose Your Move</h3></div>
           <div className="content">
-            <div id="moves" className="option-list">
+            <div id="moves" ref={movesRef} className="option-list">
               {ORDER.map(key => {
                 const o = OPTIONS[key]
                 const isSel = selected === key
@@ -492,7 +505,7 @@ export default function App(){
                     key={key}
                     className="tip-wrap"
                     data-tip={TOOLTIPS[key]}
-                    style={{ gridColumn: '1 / -1' }}        // ⬅️ make each item span full width
+                    style={{ width:'100%', gridColumn:'1 / -1' }}  // inline width + full-span
                   >
                     <div
                       className={'option-card photo' + (isSel ? ' selected' : '')}
