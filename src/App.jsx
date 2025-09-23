@@ -30,7 +30,6 @@ const ORDER = ['NOURISH','DUNES','REEF','SEAWALL','RETREAT','NONE']
 
 /* =========================
    Local images (served from /public/images)
-   Use absolute AND relative paths so it works on any host.
    ========================= */
 function paths(name){
   return [
@@ -53,7 +52,7 @@ const MOVE_IMG = {
 const WILDCARD_IMGS = {
   STORM:     paths('wild-storm'),
   RECALL:    paths('wild-recall'),
-  LA_NINA:   paths('wild-lanina'),   // note: no tilde in filename
+  LA_NINA:   paths('wild-lanina'),   // no tilde in filename
   KING_TIDE: paths('wild-kingtide'),
   EMISSIONS: paths('wild-emissions'),
 }
@@ -86,7 +85,7 @@ const TOOLTIPS = {
    ========================= */
 function prettyMoney(m){ return `$${m.toFixed(0)}M` }
 
-/** Generic <img> that fails over through srcs[] (webp → jpg → png → …) */
+/** <img> that fails over through srcs[] (webp → jpg → png → …) */
 function ImageFallback({srcs, className, alt=""}) {
   const [i, setI] = useState(0)
   const src = srcs[Math.min(i, srcs.length-1)]
@@ -211,7 +210,7 @@ export default function App(){
       case 'STORM':
         widthChangeFromWild = -20
         rate += -20
-        why = 'Big waves and high water eat away a chunk of sand all at once.'
+        why = 'Strong waves and a high storm surge pull sand off the beach quickly—like a big bite taken out at once.'
         notes.push('100-Year Storm → additional –20 ft this decade.')
         break
       case 'RECALL':
@@ -219,32 +218,32 @@ export default function App(){
           const improvement = state.lastRate - state.lastBaseRate // e.g. (-5) - (-10) = +5
           widthChangeFromWild = -improvement
           rate += -improvement
-          why = 'Leaders changed their minds, so last decade’s plan was undone.'
+          why = 'Leaders changed their minds, so last decade’s plan was undone and you lose that extra protection.'
           notes.push('Recall → reversed last decade’s management benefit on width.')
         } else {
-          why = 'No earlier plan to undo this time.'
+          why = 'There wasn’t a plan last decade, so there’s nothing to undo this time.'
           notes.push('Recall had no effect (no prior management recorded).')
         }
         break
       case 'LA_NINA':
         widthChangeFromWild = -rate // cancels whatever the rate was
         rate = 0
-        why = 'A calmer ocean this year means little to no sand loss.'
+        why = 'La Niña shifts winds and storms over the Pacific. Here we assume gentler waves for a while, so little or no erosion this decade.'
         notes.push('La Niña → 0 ft change this decade.')
         break
       case 'KING_TIDE':
         budgetChange = -30
         cost += -30
-        why = 'Very high tides flood streets, and emergency fixes cost money.'
+        why = '“King tides” are very high high tides caused by how the Sun, Moon, and Earth line up. They can flood streets and cause costly cleanups.'
         notes.push('King Tide → –$30M budget immediately.')
         break
       case 'EMISSIONS': {
         const before = rate
         rate = Math.max(rate, -5)      // immediate improvement this decade
         widthChangeFromWild = rate - before
-        why = 'Cutting pollution slows sea-level rise, so erosion eases.'
-        futureNote = 'Baseline set to –5 ft/decade from now on.'
-        notes.push('Emissions cut → baseline improves to –5 ft/decade immediately and going forward.')
+        why = 'Cutting greenhouse gas emissions slows long-term sea-level rise. We cap the baseline erosion at −5 ft/decade from now on.'
+        futureNote = 'Baseline set to −5 ft/decade from now on.'
+        notes.push('Emissions cut → baseline improves to −5 ft/decade immediately and going forward.')
         break
       }
     }
@@ -480,7 +479,8 @@ export default function App(){
         <div className="card">
           <div className="header"><h3>Choose Your Move</h3></div>
           <div className="content">
-            <div className="option-grid">
+            {/* Force stacked layout even if old CSS lingers */}
+            <div className="option-grid" style={{display:'grid', gridTemplateColumns:'1fr'}}>
               {ORDER.map(key => {
                 const o = OPTIONS[key]
                 const isSel = selected === key
