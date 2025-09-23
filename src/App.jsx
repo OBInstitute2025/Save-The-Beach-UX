@@ -73,12 +73,12 @@ const WILDCARDS = [
    Hover tooltips for moves
    ========================= */
 const TOOLTIPS = {
-  NOURISH: "Pump and place sand with pipes/barges.\nOne-decade effect. Cost: $15M.\nOffsets the default loss this decade.",
-  DUNES: "Fencing + native plants trap wind-blown sand.\nBoosts storm resilience. One-decade effect. Cost: $5M.",
-  REEF: "Submerged artificial reef (reef balls/modules).\nReduces wave energy; lasts ~30 years. Cost: $100M.",
-  SEAWALL: "Hard armoring (concrete/riprap).\nProtects structures but can narrow the beach.\nPermanent –20 ft/decade.",
-  RETREAT: "Relocate assets inland.\nGives shoreline room to move.\nZero shrink for 3 decades. Cost: $150M.",
-  NONE: "Skip management this decade and draw a Wild Card.",
+  NOURISH: "Beach Nourishment\nPump and place sand with pipes/barges.\nOne-decade effect. Cost: $15M.",
+  DUNES: "Dune Restoration\nFencing + native plants trap wind-blown sand.\nOne-decade effect. Cost: $5M.",
+  REEF: "Artificial Reef\nUnderwater blocks slow waves for ~30 years.\nCost: $100M.",
+  SEAWALL: "Seawall / Armoring\nHard barrier protects buildings but can narrow the beach.\nPermanent effect: –20 ft/decade.",
+  RETREAT: "Managed Retreat\nMove things back from the water.\nNo shrink for 3 decades. Cost: $150M.",
+  NONE: "Do Nothing\nSkip a project this decade and draw a Wild Card.",
 }
 
 /* =========================
@@ -211,7 +211,7 @@ export default function App(){
       case 'STORM':
         widthChangeFromWild = -20
         rate += -20
-        why = 'Storm surge + large swell erode dunes and the active beach face.'
+        why = 'Big waves and high water eat away a chunk of sand all at once.'
         notes.push('100-Year Storm → additional –20 ft this decade.')
         break
       case 'RECALL':
@@ -219,30 +219,30 @@ export default function App(){
           const improvement = state.lastRate - state.lastBaseRate // e.g. (-5) - (-10) = +5
           widthChangeFromWild = -improvement
           rate += -improvement
-          why = 'Policy reversal removes last decade’s management benefit.'
+          why = 'Leaders changed their minds, so last decade’s plan was undone.'
           notes.push('Recall → reversed last decade’s management benefit on width.')
         } else {
-          why = 'No prior management to reverse this time.'
+          why = 'No earlier plan to undo this time.'
           notes.push('Recall had no effect (no prior management recorded).')
         }
         break
       case 'LA_NINA':
         widthChangeFromWild = -rate // cancels whatever the rate was
         rate = 0
-        why = 'Cooler equatorial Pacific → calmer wave climate → minimal erosion.'
+        why = 'A calmer ocean this year means little to no sand loss.'
         notes.push('La Niña → 0 ft change this decade.')
         break
       case 'KING_TIDE':
         budgetChange = -30
         cost += -30
-        why = 'Emergency response and repairs during extreme high tide.'
+        why = 'Very high tides flood streets, and emergency fixes cost money.'
         notes.push('King Tide → –$30M budget immediately.')
         break
       case 'EMISSIONS': {
         const before = rate
         rate = Math.max(rate, -5)      // immediate improvement this decade
         widthChangeFromWild = rate - before
-        why = 'Rapid decarbonization slows sea-level rise starting now.'
+        why = 'Cutting pollution slows sea-level rise, so erosion eases.'
         futureNote = 'Baseline set to –5 ft/decade from now on.'
         notes.push('Emissions cut → baseline improves to –5 ft/decade immediately and going forward.')
         break
@@ -469,6 +469,7 @@ export default function App(){
               <div className="water"></div>
               <div className="sand" style={{width: Math.max(0, Math.min(100, (s.width/START_WIDTH)*50)) + '%'}}>
                 <div className="shoreline" aria-hidden="true"></div>
+                <div className="wetband" aria-hidden="true"></div>
               </div>
               <div className="neighborhood"></div>
             </div>
@@ -484,7 +485,7 @@ export default function App(){
                 const o = OPTIONS[key]
                 const isSel = selected === key
                 return (
-                  <div key={key} className="tip-wrap" data-tip={TOOLTIPS[key]} onMouseEnter={() => preload(MOVE_IMG[key])}>
+                  <div key={key} className="tip-wrap" data-tip={TOOLTIPS[key]} onMouseEnter={() => { const i=new Image(); i.src=MOVE_IMG[key][0] }}>
                     <div
                       className={'option-card photo' + (isSel ? ' selected' : '')}
                       tabIndex={0}
