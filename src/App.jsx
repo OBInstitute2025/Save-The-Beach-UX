@@ -1,12 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import './styles.css'
 
-// Remove any leftover canaries or inline "Build:" text from older builds
-useEffect(() => {
-  const cleanup = () => {
-    // Remove any "Build: ..." <strong> accidentally left in the subtitle
-    document.querySelectorAll('.mast-sub strong').forEach(el => el.remove());
-
     // Remove any CANARY overlay divs inserted directly in index.html
     Array.from(document.body.children).forEach(el => {
       if (el.id === 'root') return;
