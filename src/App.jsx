@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import './styles.v12.css'  // ⬅️ NEW file name to bust all cache
+import './styles.v12.css'  // new filename to ensure fresh styling
 
 /* =========================
    Game constants
@@ -137,6 +137,7 @@ export default function App(){
     ? (s.victory ? <span className="badge green">You saved the beach! 🏖️</span> : <span className="badge red">Game Over</span>)
     : <span className="badge blue">Round {s.round}/{ROUNDS}</span>
 
+  // Current base rate priority
   function currentBaseRate(state){
     if (state.retreatRoundsLeft > 0) return 0
     if (state.seawallBuilt) return -20
@@ -167,7 +168,7 @@ export default function App(){
           cost -= OPTIONS.REEF.cost
           notes.push('Built Artificial Reef: base beach loss becomes –5 ft/dec for 30 years.')
           if (state.retreatRoundsLeft === 0 && !state.seawallBuilt){
-            rate = Math.max(baseRate, -5)
+            rate = Math.max(baseRate, -5) // immediate effect this decade
           }
         } else {
           notes.push(state.reefRoundsLeft > 0 ? 'Reef already active.' : 'Reef effect ended.')
@@ -269,15 +270,16 @@ export default function App(){
     const baseCalc = computeThisDecade(choice, working)
     let { baseRate, rate, cost, notes } = baseCalc
 
+    // persistent toggles & timers
     let reefBuilt = working.reefBuilt
     let reefRoundsLeft = working.reefRoundsLeft
     let seawallBuilt = working.seawallBuilt
     let retreatRoundsLeft = working.retreatRoundsLeft
     let baseBaseline = working.baseBaseline
 
-    if (choice === 'REEF' && !reefBuilt){ reefBuilt = true; reefRoundsLeft = 3 }
-    if (choice === 'SEAWALL' && !seawallBuilt){ seawallBuilt = true }
-    if (choice === 'RETREAT'){ retreatRoundsLeft = 3 }
+    if (choice === 'REEF' && !reefBuilt){ reefBuilt = true; reefRoundsLeft = 3 }      // 30 years
+    if (choice === 'SEAWALL' && !seawallBuilt){ seawallBuilt = true }                 // permanent
+    if (choice === 'RETREAT'){ retreatRoundsLeft = 3 }                                // 3 decades
 
     let drawn = null
     let wildExtras = null
@@ -288,13 +290,14 @@ export default function App(){
       cost += applied.cost
       notes = [...notes, ...applied.notes]
       wildExtras = applied
-      if (drawn.key === 'EMISSIONS') baseBaseline = Math.max(baseBaseline, -5)
+      if (drawn.key === 'EMISSIONS') baseBaseline = Math.max(baseBaseline, -5) // persist improvement
     }
 
     const budgetDelta = cost
     const newBudget = working.budget + cost
     const newWidth = Math.max(0, working.width + rate)
 
+    // timers tick AFTER applying this decade
     if (reefRoundsLeft > 0) reefRoundsLeft -= 1
     if (retreatRoundsLeft > 0) retreatRoundsLeft -= 1
 
