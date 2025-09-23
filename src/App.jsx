@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import './styles.css'
 
 /* =========================
@@ -102,9 +102,6 @@ function ImageFallback({srcs, className, alt=""}) {
   )
 }
 
-/* =========================
-   App
-   ========================= */
 export default function App(){
   const [difficulty, setDifficulty] = useState('normal')
   const [selected, setSelected] = useState('NOURISH')
@@ -182,7 +179,7 @@ export default function App(){
         break
       case 'SEAWALL':
         if (!state.seawallBuilt){
-          cost -= OPTIONS.SEWALL?.cost || OPTIONS.SEAWALL.cost
+          cost -= OPTIONS.SEAWALL.cost
           notes.push('Built Seawall: base beach loss becomes –20 ft/dec permanently.')
         } else {
           notes.push('Seawall already built.')
@@ -369,9 +366,6 @@ export default function App(){
     setWildModal(null)
   }
 
-  // Visual: map width (50ft start) → percent sand band (0–100% of middle lane)
-  const sandPct = Math.max(0, Math.min(100, (s.width / START_WIDTH) * 50))
-
   const EndScreen = () => (
     <div className="modal-backdrop strong">
       <div className="modal">
@@ -468,16 +462,14 @@ export default function App(){
               <Stat label="Beach Width" value={`${s.width} ft`} />
               <Stat label="Budget" value={prettyMoney(s.budget)} />
               <Stat label="Rate of beach loss" value={`${currentBaseRate(s)} ft/dec`} />
-              <Stat label="Reef left" value={`${s.reefRoundsLeft} rounds`} />
-              <Stat label="Seawall?" value={s.seawallBuilt ? 'Yes' : 'No'} />
-              <Stat label="Retreat left" value={`${s.retreatRoundsLeft} rounds`} />
-              <Stat label="Round" value={`${s.round}/${ROUNDS}`} />
             </div>
 
             {/* TOP-DOWN COASTAL VISUAL */}
             <div className="coast">
               <div className="water"></div>
-              <div className="sand" style={{width: Math.max(0, Math.min(100, (s.width/START_WIDTH)*50)) + '%'}}></div>
+              <div className="sand" style={{width: Math.max(0, Math.min(100, (s.width/START_WIDTH)*50)) + '%'}}>
+                <div className="shoreline" aria-hidden="true"></div>
+              </div>
               <div className="neighborhood"></div>
             </div>
           </div>
@@ -492,29 +484,27 @@ export default function App(){
                 const o = OPTIONS[key]
                 const isSel = selected === key
                 return (
-                  <div
-                    key={key}
-                    className={'option-card photo' + (isSel ? ' selected' : '')}
-                    title={TOOLTIPS[key]}
-                    aria-label={TOOLTIPS[key]}
-                    tabIndex={0}
-                    onMouseEnter={() => preload(MOVE_IMG[key])}
-                    onKeyDown={(e)=> (e.key === 'Enter' || e.key === ' ') && !s.gameOver && setSelected(key)}
-                    onClick={()=>!s.gameOver && setSelected(key)}
-                  >
-                    <ImageFallback className="option-photo-img" srcs={MOVE_IMG[key]} alt={o.title} />
-                    <div className="option-overlay" />
-                    <div className="option-top">
-                      <div className="option-title">{o.title}</div>
-                      <div className="cost-pill">{o.cost > 0 ? `–$${o.cost}M` : '—'}</div>
+                  <div key={key} className="tip-wrap" data-tip={TOOLTIPS[key]} onMouseEnter={() => preload(MOVE_IMG[key])}>
+                    <div
+                      className={'option-card photo' + (isSel ? ' selected' : '')}
+                      tabIndex={0}
+                      onKeyDown={(e)=> (e.key === 'Enter' || e.key === ' ') && !s.gameOver && setSelected(key)}
+                      onClick={()=>!s.gameOver && setSelected(key)}
+                    >
+                      <ImageFallback className="option-photo-img" srcs={MOVE_IMG[key]} alt={o.title} />
+                      <div className="option-overlay" />
+                      <div className="option-top">
+                        <div className="option-title">{o.title}</div>
+                        <div className="cost-pill">{o.cost > 0 ? `–$${o.cost}M` : '—'}</div>
+                      </div>
+                      <div className="option-meta">{o.desc}</div>
                     </div>
-                    <div className="option-meta">{o.desc}</div>
                   </div>
                 )
               })}
             </div>
             <div className="actions">
-              <button className="primary" disabled={s.gameOver} onClick={()=>nextTurn(selected)}>Advance Decade</button>
+              <button className="primary cta-pulse" disabled={s.gameOver} onClick={()=>nextTurn(selected)}>Make your move</button>
               <button className="secondary" onClick={()=>resetGame()}>Reset</button>
             </div>
           </div>
@@ -537,8 +527,7 @@ export default function App(){
             <div className="intro-title">How to play</div>
             <ul className="intro-list">
               <li>Pick one move each decade.</li>
-              <li>The beach shrinks by 10 feet per decade by default.</li>
-              <li>Beach width changes by the decade’s rate.</li>
+              <li>The beach shrinks by 10 feet per decade, unless you make a move!</li>
               <li>If Beach ≤ 0 ft or Budget ≤ $0M → you lose.</li>
               <li>Make it to year {END_YEAR} with both above zero → you win!</li>
             </ul>
