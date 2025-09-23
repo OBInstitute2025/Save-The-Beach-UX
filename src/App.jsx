@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import './styles.css'
 
-/* ====== BUILD CANARY (change this string each deploy to verify) ====== */
-const BUILD = 'column-force-001'
-
 /* =========================
    Game constants
    ========================= */
@@ -113,11 +110,25 @@ export default function App(){
     try { return localStorage.getItem(INTRO_KEY) === '1' ? false : true } catch { return true }
   })
 
-  /* ====== TEST: change the <title> and console to make sure build is fresh ====== */
+  /* FORCE SINGLE-COLUMN via inline styles + observer */
+  const movesRef = useRef(null)
   useEffect(() => {
-    try { document.title = `Save the Beach! • ${BUILD}` } catch {}
-    // eslint-disable-next-line no-console
-    console.log('STB build:', BUILD)
+    const el = movesRef.current
+    if (!el) return
+    const force = () => {
+      el.style.display = 'flex'
+      el.style.flexDirection = 'column'
+      el.style.alignItems = 'stretch'
+      el.style.gap = '10px'
+      for (const child of el.children) {
+        child.style.width = '100%'
+        child.style.gridColumn = '1 / -1'
+      }
+    }
+    force()
+    const obs = new MutationObserver(force)
+    obs.observe(el, { attributes: true, childList: true, subtree: true })
+    return () => obs.disconnect()
   }, [])
 
   function initialState(diffKey = difficulty){
@@ -127,7 +138,7 @@ export default function App(){
       round: 1,
       width: START_WIDTH,
       budget: diff.budget,
-      baseBaseline: diff.baseline, // –8/–10/–12; EMISSIONS can improve to –5
+      baseBaseline: diff.baseline,
       reefBuilt: false,
       reefRoundsLeft: 0,
       seawallBuilt: false,
@@ -147,9 +158,6 @@ export default function App(){
     ? (s.victory ? <span className="badge green">You saved the beach! 🏖️</span> : <span className="badge red">Game Over</span>)
     : <span className="badge blue">Round {s.round}/{ROUNDS}</span>
 
-  /* =========================
-     Rate math
-     ========================= */
   function currentBaseRate(state){
     if (state.retreatRoundsLeft > 0) return 0
     if (state.seawallBuilt) return -20
@@ -430,7 +438,7 @@ export default function App(){
       {/* Title / badge / help */}
       <div className="masthead">
         <div className="mast-title">Save the Beach!</div>
-        <div className="mast-sub">Survive to year {END_YEAR} without the beach or the budget hitting zero. <strong style={{color:'#dc2626'}}>Build: {BUILD}</strong></div>
+        <div className="mast-sub">Survive to year {END_YEAR} without the beach or the budget hitting zero.</div>
         {badge}
         <button className="secondary help-btn" onClick={()=>setShowIntro(true)}>Help</button>
       </div>
@@ -484,8 +492,7 @@ export default function App(){
         <div className="card">
           <div className="header"><h3>Choose Your Move</h3></div>
           <div className="content">
-            {/* BRAND-NEW container with inline layout (cannot be overridden) */}
-            <div id="stb-moves" style={{display:'flex', flexDirection:'column', alignItems:'stretch', gap:'10px'}}>
+            <div id="moves" ref={movesRef} className="option-list">
               {ORDER.map(key => {
                 const o = OPTIONS[key]
                 const isSel = selected === key
@@ -494,11 +501,10 @@ export default function App(){
                     key={key}
                     className="tip-wrap"
                     data-tip={TOOLTIPS[key]}
-                    style={{display:'block', width:'100%'}}
+                    style={{ width:'100%', gridColumn:'1 / -1' }}
                   >
                     <div
                       className={'option-card photo' + (isSel ? ' selected' : '')}
-                      style={{display:'block', width:'100%'}}           // force full width
                       tabIndex={0}
                       onKeyDown={(e)=> (e.key === 'Enter' || e.key === ' ') && !s.gameOver && setSelected(key)}
                       onClick={()=>!s.gameOver && setSelected(key)}
