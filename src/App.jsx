@@ -1,6 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react'
 import './styles.css'
 
+// Remove any leftover canaries or inline "Build:" text from older builds
+useEffect(() => {
+  const cleanup = () => {
+    // Remove any "Build: ..." <strong> accidentally left in the subtitle
+    document.querySelectorAll('.mast-sub strong').forEach(el => el.remove());
+
+    // Remove any CANARY overlay divs inserted directly in index.html
+    Array.from(document.body.children).forEach(el => {
+      if (el.id === 'root') return;
+      const txt = (el.textContent || '').trim();
+      if (txt.startsWith('CANARY:')) {
+        el.remove();
+      }
+    });
+  };
+
+  cleanup();
+  // Run again on the next tick in case the DOM is still settling
+  setTimeout(cleanup, 0);
+}, []);
+
+
 /* =========================
    Game constants
    ========================= */
