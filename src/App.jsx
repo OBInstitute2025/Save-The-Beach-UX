@@ -1,22 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import './styles.css'
 
-    // Remove any CANARY overlay divs inserted directly in index.html
-    Array.from(document.body.children).forEach(el => {
-      if (el.id === 'root') return;
-      const txt = (el.textContent || '').trim();
-      if (txt.startsWith('CANARY:')) {
-        el.remove();
-      }
-    });
-  };
-
-  cleanup();
-  // Run again on the next tick in case the DOM is still settling
-  setTimeout(cleanup, 0);
-}, []);
-
-
 /* =========================
    Game constants
    ========================= */
@@ -126,26 +110,7 @@ export default function App(){
     try { return localStorage.getItem(INTRO_KEY) === '1' ? false : true } catch { return true }
   })
 
-  /* FORCE SINGLE-COLUMN via inline styles + observer */
-  const movesRef = useRef(null)
-  useEffect(() => {
-    const el = movesRef.current
-    if (!el) return
-    const force = () => {
-      el.style.display = 'flex'
-      el.style.flexDirection = 'column'
-      el.style.alignItems = 'stretch'
-      el.style.gap = '10px'
-      for (const child of el.children) {
-        child.style.width = '100%'
-        child.style.gridColumn = '1 / -1'
-      }
-    }
-    force()
-    const obs = new MutationObserver(force)
-    obs.observe(el, { attributes: true, childList: true, subtree: true })
-    return () => obs.disconnect()
-  }, [])
+  // (kept simple — we don’t need any canary/cleanup effects now)
 
   function initialState(diffKey = difficulty){
     const diff = DIFFICULTIES[diffKey]
@@ -154,7 +119,7 @@ export default function App(){
       round: 1,
       width: START_WIDTH,
       budget: diff.budget,
-      baseBaseline: diff.baseline,
+      baseBaseline: diff.baseline, // –8/–10/–12; EMISSIONS can improve to –5
       reefBuilt: false,
       reefRoundsLeft: 0,
       seawallBuilt: false,
@@ -508,19 +473,16 @@ export default function App(){
         <div className="card">
           <div className="header"><h3>Choose Your Move</h3></div>
           <div className="content">
-            <div id="moves" ref={movesRef} className="option-list">
+            {/* BRAND-NEW container with inline layout: always vertical */}
+            <div id="stb-moves" style={{display:'flex', flexDirection:'column', alignItems:'stretch', gap:'10px'}}>
               {ORDER.map(key => {
                 const o = OPTIONS[key]
                 const isSel = selected === key
                 return (
-                  <div
-                    key={key}
-                    className="tip-wrap"
-                    data-tip={TOOLTIPS[key]}
-                    style={{ width:'100%', gridColumn:'1 / -1' }}
-                  >
+                  <div key={key} className="tip-wrap" data-tip={TOOLTIPS[key]} style={{display:'block', width:'100%'}}>
                     <div
                       className={'option-card photo' + (isSel ? ' selected' : '')}
+                      style={{display:'block', width:'100%'}}
                       tabIndex={0}
                       onKeyDown={(e)=> (e.key === 'Enter' || e.key === ' ') && !s.gameOver && setSelected(key)}
                       onClick={()=>!s.gameOver && setSelected(key)}
