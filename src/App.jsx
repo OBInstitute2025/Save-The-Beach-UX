@@ -101,6 +101,28 @@ function ImageFallback({srcs, className, alt=""}) {
   )
 }
 
+/* =========================
+   Top-right logo (fixed; does not affect layout)
+   ========================= */
+function CornerLogo() {
+  return (
+    <a
+      className="corner-logo"
+      href="https://oceanbeachinstitute.com/"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Ocean Beach Institute (opens in new tab)"
+    >
+      <img
+        src="/images/obi-logo.png"
+        alt="Ocean Beach Institute"
+        loading="lazy"
+        decoding="async"
+      />
+    </a>
+  );
+}
+
 export default function App(){
   const [difficulty, setDifficulty] = useState('normal')
   const [selected, setSelected] = useState('NOURISH')
@@ -109,8 +131,6 @@ export default function App(){
   const [showIntro, setShowIntro] = useState(() => {
     try { return localStorage.getItem(INTRO_KEY) === '1' ? false : true } catch { return true }
   })
-
-  // (kept simple — we don’t need any canary/cleanup effects now)
 
   function initialState(diffKey = difficulty){
     const diff = DIFFICULTIES[diffKey]
@@ -473,7 +493,7 @@ export default function App(){
         <div className="card">
           <div className="header"><h3>Choose Your Move</h3></div>
           <div className="content">
-            {/* BRAND-NEW container with inline layout: always vertical */}
+            {/* Always vertical list */}
             <div id="stb-moves" style={{display:'flex', flexDirection:'column', alignItems:'stretch', gap:'10px'}}>
               {ORDER.map(key => {
                 const o = OPTIONS[key]
@@ -537,6 +557,9 @@ export default function App(){
           </div>
         </div>
       )}
+
+      {/* <-- Add the logo (fixed position; won’t affect layout) */}
+      <CornerLogo />
     </div>
   )
 }
