@@ -480,6 +480,7 @@ export default function App(){
               <div className="water"></div>
               <div className="sand" style={{width: Math.max(0, Math.min(100, (s.width/START_WIDTH)*50)) + '%'}}>
                 <div className="shoreline" aria-hidden="true"></div>
+                <div className="shoreline2" aria-hidden="true"></div>
                 <div className="wetband" aria-hidden="true"></div>
               </div>
               <div className="neighborhood"></div>
