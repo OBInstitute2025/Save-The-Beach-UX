@@ -221,4 +221,30 @@ button:focus-visible { outline: 3px solid #0ea5e9; outline-offset: 2px; }
 /* If any old markup/class slips through */
 .option-grid { display:grid !important; grid-template-columns:1fr !important; }
 
+/* ---- Top-right clickable logo (fixed; no layout impact) ---- */
+.corner-logo {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 5000;           /* below modal overlay (9999) */
+  display: block;
+}
 
+.corner-logo img {
+  width: clamp(120px, 20vw, 280px);  /* scales to fill that upper-right space */
+  height: auto;
+  border-radius: 10px;
+  border: 2px solid rgba(255,255,255,0.9);
+  box-shadow: 0 8px 24px rgba(2,6,23,0.25);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.corner-logo:hover img {
+  transform: scale(1.02);
+  box-shadow: 0 10px 28px rgba(2,6,23,0.32);
+}
+
+@media (max-width: 700px) {
+  .corner-logo { top: 8px; right: 8px; }
+  .corner-logo img { width: 120px; }   /* keep it small on phones */
+}
