@@ -101,9 +101,7 @@ function ImageFallback({srcs, className, alt=""}) {
   )
 }
 
-/* =========================
-   Top-right logo (fixed; no visible text)
-   ========================= */
+/* Fixed top-right logo (no text) */
 function CornerLogo() {
   return (
     <a
@@ -139,7 +137,7 @@ export default function App(){
       round: 1,
       width: START_WIDTH,
       budget: diff.budget,
-      baseBaseline: diff.baseline, // –8/–10/–12; EMISSIONS can improve to –5
+      baseBaseline: diff.baseline,
       reefBuilt: false,
       reefRoundsLeft: 0,
       seawallBuilt: false,
@@ -493,7 +491,6 @@ export default function App(){
         <div className="card">
           <div className="header"><h3>Choose Your Move</h3></div>
           <div className="content">
-            {/* Always vertical list */}
             <div id="stb-moves" style={{display:'flex', flexDirection:'column', alignItems:'stretch', gap:'10px'}}>
               {ORDER.map(key => {
                 const o = OPTIONS[key]
@@ -558,7 +555,7 @@ export default function App(){
         </div>
       )}
 
-      {/* Fixed top-right logo (no text) */}
+      {/* Fixed top-right logo */}
       <CornerLogo />
     </div>
   )
