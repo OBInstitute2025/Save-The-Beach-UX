@@ -210,7 +210,7 @@ button:focus-visible { outline: 3px solid #0ea5e9; outline-offset: 2px; }
   padding-right: max(24px, env(safe-area-inset-right));
 }
 
-/* ===== Force moves to a single column ===== */
+/* ===== Force moves to a single column (back-compat) ===== */
 #moves { 
   display: grid !important;
   grid-template-columns: 1fr !important;
@@ -231,7 +231,7 @@ button:focus-visible { outline: 3px solid #0ea5e9; outline-offset: 2px; }
 }
 
 .corner-logo img {
-  width: clamp(120px, 20vw, 280px);  /* scales to fill that upper-right space */
+  width: clamp(120px, 20vw, 280px);  /* fills the upper-right space */
   height: auto;
   border-radius: 10px;
   border: 2px solid rgba(255,255,255,0.9);
@@ -246,5 +246,5 @@ button:focus-visible { outline: 3px solid #0ea5e9; outline-offset: 2px; }
 
 @media (max-width: 700px) {
   .corner-logo { top: 8px; right: 8px; }
-  .corner-logo img { width: 120px; }   /* keep it small on phones */
+  .corner-logo img { width: 120px; }
 }
