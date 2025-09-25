@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState } from 'react'
 import './styles.css'
 
 /* =========================
@@ -102,7 +102,7 @@ function ImageFallback({srcs, className, alt=""}) {
 }
 
 /* =========================
-   Top-right logo (fixed; does not affect layout)
+   Top-right logo (fixed; no visible text)
    ========================= */
 function CornerLogo() {
   return (
@@ -111,7 +111,7 @@ function CornerLogo() {
       href="https://oceanbeachinstitute.com/"
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="Ocean Beach Institute (opens in new tab)"
+      aria-label="Ocean Beach Institute"
     >
       <img
         src="/images/obi-logo.png"
@@ -558,7 +558,7 @@ export default function App(){
         </div>
       )}
 
-      {/* <-- Add the logo (fixed position; won’t affect layout) */}
+      {/* Fixed top-right logo (no text) */}
       <CornerLogo />
     </div>
   )
