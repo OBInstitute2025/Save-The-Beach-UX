@@ -54,14 +54,14 @@ body {
 .water {
   flex: 1; position:relative;
   background: linear-gradient(90deg, var(--water), var(--water2));
-  background-size: 210% 100%;
-  animation: waterShift 8s ease-in-out infinite alternate;
+  background-size: 190% 100%;
+  animation: waterShift 9s ease-in-out infinite alternate;
 }
 .water::after {
   content:""; position:absolute; inset:0;
   background-image: radial-gradient(rgba(255,255,255,0.22) 1px, transparent 1px);
   background-size: 14px 14px;
-  animation: sparkleDrift 11s linear infinite;
+  animation: sparkleDrift 12s linear infinite;
   opacity:.7;
 }
 .sand {
@@ -76,42 +76,14 @@ body {
   background-size: 10px 10px;
 }
 
-/* --- Swash: 32px uprush at ~1:2 timing, with scalloped foam and twin lines --- */
-.shoreline,
-.shoreline2 {
-  position:absolute; top:0; bottom:0;
-  width:16px;
-  left:-12px;            /* sits slightly into water */
-  background: linear-gradient(90deg, rgba(255,255,255,.95), rgba(255,255,255,.5), transparent);
-  filter: blur(0.7px);
-  pointer-events:none;
-
-  /* scalloped foam edge along the left (water-facing) side */
-  -webkit-mask-image: radial-gradient(6px 6px at left center, #000 65%, transparent 66%);
-  -webkit-mask-size: 14px 14px;
-  -webkit-mask-repeat: repeat-y;
-          mask-image: radial-gradient(6px 6px at left center, #000 65%, transparent 66%);
-          mask-size: 14px 14px;
-          mask-repeat: repeat-y;
-}
-
-/* Primary foam line */
+/* --- Swash (reverted look) with 2:1 timing: slow uprush, fast backwash --- */
 .shoreline {
+  position:absolute; left:-12px; top:0; bottom:0; width:16px;
+  background: linear-gradient(90deg, rgba(255,255,255,.9), rgba(255,255,255,.45), transparent);
+  filter: blur(0.7px);
   animation: swash 3.8s linear infinite;
-  opacity:.95;
+  pointer-events:none;
 }
-
-/* Secondary foam line: slightly thinner + out of phase */
-.shoreline2 {
-  width:12px;
-  left:-10px;
-  filter: blur(0.6px);
-  opacity:.75;
-  animation: swash2 4s linear infinite;
-  animation-delay: -0.55s;   /* slight phase offset */
-}
-
-/* Wet dark band under foam */
 .wetband {
   position:absolute; left:0; top:0; bottom:0; width:12px;
   background: linear-gradient(90deg, rgba(0,0,0,.09), rgba(0,0,0,.04), transparent);
@@ -119,24 +91,15 @@ body {
   pointer-events:none;
 }
 
-/* Fast uprush to 32px by 33% of cycle, slow backwash */
+/* Peak at 66% → takes longer to run up (slow), then returns quickly (fast) */
 @keyframes swash {
-  0%   { transform: translateX(0);    opacity:.80; }
-  33%  { transform: translateX(-32px); opacity:1;   }
-  100% { transform: translateX(0);    opacity:.80; }
+  0%   { transform: translateX(0);     opacity:.70; }
+  66%  { transform: translateX(-18px); opacity:1;   }
+  100% { transform: translateX(0);     opacity:.70; }
 }
-
-/* Secondary line runs a touch shorter to add depth */
-@keyframes swash2 {
-  0%   { transform: translateX(0);    opacity:.68; }
-  33%  { transform: translateX(-28px); opacity:.9; }
-  100% { transform: translateX(0);    opacity:.68; }
-}
-
-/* Wet band widens with uprush, then recedes (1:2 timing) */
 @keyframes wetRunup {
   0%   { width: 12px; }
-  33%  { width: 30px; }
+  66%  { width: 26px; }
   100% { width: 12px; }
 }
 
@@ -163,7 +126,7 @@ body {
 .option-overlay { position:absolute; inset:0; background: linear-gradient(to bottom, rgba(0,0,0,.22), rgba(0,0,0,.62)); }
 .option-top { position:relative; z-index:1; display:flex; justify-content:space-between; align-items:center; gap:8px; }
 
-/* 20% larger titles & subtext on MOVE cards (kept) */
+/* Keep 20% larger titles & subtext */
 .option-title { 
   font-weight:900; font-family: Outfit, Inter, ui-sans-serif; 
   text-shadow: 0 2px 6px rgba(0,0,0,.5);
@@ -219,91 +182,4 @@ button:focus-visible { outline: 3px solid #0ea5e9; outline-offset: 2px; }
 
 /* Log */
 .log { max-height: 350px; overflow:auto; display:grid; gap:10px; }
-.log-entry { border:1px dashed rgba(2,6,23,0.15); border-radius:12px; background:#fff; padding:10px 12px; font-size:14px; white-space:pre-wrap; }
-
-/* Backdrop + modals */
-.modal-backdrop { position:fixed; inset:0; background:rgba(2,6,23,.82); backdrop-filter: blur(3px); display:flex; align-items:center; justify-content:center; padding:16px; z-index: 9999; }
-.modal-backdrop.strong { background: rgba(2,6,23,.86); backdrop-filter: blur(4px); }
-.modal { background:#fff; border:1px solid rgba(2,6,23,.1); border-radius:16px; padding:18px; width:min(560px, 92vw); box-shadow:0 10px 30px rgba(2,6,23,.25); }
-
-/* Wild-card modal */
-.wild-frame { width:min(980px,96vw); border-radius:16px; overflow:hidden; background:#000; box-shadow:0 16px 40px rgba(2,6,23,.35); }
-.wild-frame.pop { animation: pop .18s ease-out; }
-.wild-photo-img { width: 100%; height: min(48vh,420px); object-fit: cover; display:block; }
-.wild-sheet { margin:14px; background:rgba(255,255,255,.97); border:1px solid rgba(2,6,23,.08); border-radius:14px; padding:14px 16px 16px; }
-.wild-title { font-size:24px; font-weight:900; font-family: Outfit, Inter, ui-sans-serif; }
-.wild-sub { color:#334155; margin:4px 0 10px; }
-
-.impact-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:10px; margin:4px 0 8px; }
-.impact-tile { border-radius:12px; padding:10px; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.25); }
-.impact-tile.good { background: linear-gradient(180deg, #22c55e, #15803d); }
-.impact-tile.bad  { background: linear-gradient(180deg, #ef4444, #b91c1c); }
-.impact-label { font-size:12px; text-transform:uppercase; letter-spacing:.06em; opacity:.95; }
-.impact-value { font-size:22px; font-weight:900; line-height:1.1; }
-
-.wild-mini { color:#475569; font-size:12px; margin-top:4px; }
-.why-details { margin-top:8px; }
-.why-details summary { cursor:pointer; color:#0f172a; font-weight:700; }
-.why-text { color:#0f172a; margin-top:6px; }
-.future-text { color:#0f172a; opacity:.85; margin-top:4px; }
-.wild-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
-
-/* Intro modal */
-.intro-modal { background:#fff; width:min(560px,92vw); border-radius:16px; padding:16px; border:1px solid rgba(2,6,23,.1); box-shadow:0 10px 30px rgba(2,6,23,.25); }
-.intro-modal.pop { animation: pop .18s ease-out; }
-.intro-title { font-family: Outfit, Inter, ui-sans-serif; font-weight:900; font-size:22px; margin-bottom:6px; }
-.intro-list { margin:0 0 10px 18px; padding:0; font-size:14px; }
-.intro-actions { display:flex; justify-content:space-between; align-items:center; gap:10px; }
-.intro-check { font-size:13px; color:#334155; display:flex; align-items:center; gap:8px; }
-
-@keyframes pop { from { transform: scale(.96); opacity:.6 } to { transform: scale(1); opacity:1 } }
-@keyframes waterShift { 0% { background-position: 0% 0%; } 100% { background-position: 100% 0%; } }
-@keyframes sparkleDrift { 0% { background-position: 0 0; } 100% { background-position: 140px 0; } }
-
-/* Respect reduced-motion */
-@media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; }
-}
-
-/* Safe-area padding */
-.container {
-  padding-left: max(24px, env(safe-area-inset-left));
-  padding-right: max(24px, env(safe-area-inset-right));
-}
-
-/* ===== Force moves to a single column (back-compat) ===== */
-#moves { 
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  grid-auto-flow: row !important;
-}
-#moves .option-card { width: 100% !important; }
-
-/* If any old markup/class slips through */
-.option-grid { display:grid !important; grid-template-columns:1fr !important; }
-
-/* ---- Top-right clickable logo (fixed; no layout impact) ---- */
-.corner-logo {
-  position: fixed;
-  top: 14px;
-  right: 14px;
-  z-index: 5000;
-  display: block;
-}
-.corner-logo img {
-  width: clamp(60px, 10vw, 140px);
-  height: auto;
-  border-radius: 10px;
-  border: 2px solid rgba(255,255,255,0.9);
-  box-shadow: 0 8px 24px rgba(2,6,23,0.25);
-  transition: transform 120ms ease, box-shadow 120ms ease;
-}
-.corner-logo:hover img {
-  transform: scale(1.02);
-  box-shadow: 0 10px 28px rgba(2,6,23,0.32);
-}
-
-@media (max-width: 700px) {
-  .corner-logo { top: 8px; right: 8px; }
-  .corner-logo img { width: 80px; }
-}
+.log-entry { border:1px dashed rgba(2,6,23
