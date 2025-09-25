@@ -231,7 +231,8 @@ button:focus-visible { outline: 3px solid #0ea5e9; outline-offset: 2px; }
 }
 
 .corner-logo img {
-  width: clamp(120px, 20vw, 280px);  /* fills the upper-right space */
+  /* ~half the previous size */
+  width: clamp(60px, 10vw, 140px);
   height: auto;
   border-radius: 10px;
   border: 2px solid rgba(255,255,255,0.9);
@@ -246,5 +247,5 @@ button:focus-visible { outline: 3px solid #0ea5e9; outline-offset: 2px; }
 
 @media (max-width: 700px) {
   .corner-logo { top: 8px; right: 8px; }
-  .corner-logo img { width: 120px; }
+  .corner-logo img { width: 80px; }  /* was 120px */
 }
