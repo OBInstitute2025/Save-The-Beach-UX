@@ -54,14 +54,14 @@ body {
 .water {
   flex: 1; position:relative;
   background: linear-gradient(90deg, var(--water), var(--water2));
-  background-size: 190% 100%;
-  animation: waterShift 9s ease-in-out infinite alternate;
+  background-size: 210% 100%;
+  animation: waterShift 8s ease-in-out infinite alternate;
 }
 .water::after {
   content:""; position:absolute; inset:0;
   background-image: radial-gradient(rgba(255,255,255,0.22) 1px, transparent 1px);
   background-size: 14px 14px;
-  animation: sparkleDrift 12s linear infinite;
+  animation: sparkleDrift 11s linear infinite;
   opacity:.7;
 }
 .sand {
@@ -76,29 +76,67 @@ body {
   background-size: 10px 10px;
 }
 
-/* --- More realistic swash: slightly farther run-up, quicker uprush --- */
-.shoreline {
-  position:absolute; left:-12px; top:0; bottom:0; width:16px;
-  background: linear-gradient(90deg, rgba(255,255,255,.9), rgba(255,255,255,.45), transparent);
+/* --- Swash: 32px uprush at ~1:2 timing, with scalloped foam and twin lines --- */
+.shoreline,
+.shoreline2 {
+  position:absolute; top:0; bottom:0;
+  width:16px;
+  left:-12px;            /* sits slightly into water */
+  background: linear-gradient(90deg, rgba(255,255,255,.95), rgba(255,255,255,.5), transparent);
   filter: blur(0.7px);
-  animation: swash 3.8s ease-in-out infinite;  /* timing curve keeps it gentle */
   pointer-events:none;
+
+  /* scalloped foam edge along the left (water-facing) side */
+  -webkit-mask-image: radial-gradient(6px 6px at left center, #000 65%, transparent 66%);
+  -webkit-mask-size: 14px 14px;
+  -webkit-mask-repeat: repeat-y;
+          mask-image: radial-gradient(6px 6px at left center, #000 65%, transparent 66%);
+          mask-size: 14px 14px;
+          mask-repeat: repeat-y;
 }
+
+/* Primary foam line */
+.shoreline {
+  animation: swash 3.8s linear infinite;
+  opacity:.95;
+}
+
+/* Secondary foam line: slightly thinner + out of phase */
+.shoreline2 {
+  width:12px;
+  left:-10px;
+  filter: blur(0.6px);
+  opacity:.75;
+  animation: swash2 4s linear infinite;
+  animation-delay: -0.55s;   /* slight phase offset */
+}
+
+/* Wet dark band under foam */
 .wetband {
   position:absolute; left:0; top:0; bottom:0; width:12px;
   background: linear-gradient(90deg, rgba(0,0,0,.09), rgba(0,0,0,.04), transparent);
-  animation: wetRunup 3.8s ease-in-out infinite;
+  animation: wetRunup 3.8s linear infinite;
   pointer-events:none;
 }
+
+/* Fast uprush to 32px by 33% of cycle, slow backwash */
 @keyframes swash {
-  /* Fast uprush to 35%, longer backwash back to start */
-  0%   { transform: translateX(0);    opacity:.75; }
-  35%  { transform: translateX(-18px); opacity:1;   }
-  100% { transform: translateX(0);    opacity:.75; }
+  0%   { transform: translateX(0);    opacity:.80; }
+  33%  { transform: translateX(-32px); opacity:1;   }
+  100% { transform: translateX(0);    opacity:.80; }
 }
+
+/* Secondary line runs a touch shorter to add depth */
+@keyframes swash2 {
+  0%   { transform: translateX(0);    opacity:.68; }
+  33%  { transform: translateX(-28px); opacity:.9; }
+  100% { transform: translateX(0);    opacity:.68; }
+}
+
+/* Wet band widens with uprush, then recedes (1:2 timing) */
 @keyframes wetRunup {
   0%   { width: 12px; }
-  35%  { width: 26px; }
+  33%  { width: 30px; }
   100% { width: 12px; }
 }
 
@@ -125,15 +163,15 @@ body {
 .option-overlay { position:absolute; inset:0; background: linear-gradient(to bottom, rgba(0,0,0,.22), rgba(0,0,0,.62)); }
 .option-top { position:relative; z-index:1; display:flex; justify-content:space-between; align-items:center; gap:8px; }
 
-/* >>> 20% larger titles & subtext on MOVE cards <<< */
+/* 20% larger titles & subtext on MOVE cards (kept) */
 .option-title { 
   font-weight:900; font-family: Outfit, Inter, ui-sans-serif; 
   text-shadow: 0 2px 6px rgba(0,0,0,.5);
-  font-size: 1.2em;                 /* +20% vs previous */
+  font-size: 1.2em;
 }
 .option-meta { 
   position:relative; z-index:1; 
-  font-size: calc(12px * 1.2);      /* 12px → ~14.4px */
+  font-size: calc(12px * 1.2);
   text-shadow: 0 2px 6px rgba(0,0,0,.5); 
 }
 
